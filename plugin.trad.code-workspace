@@ -1,0 +1,16 @@
+{
+    "folders": [
+      {
+        "path": "src/Altinn.Dan.Plugin.Trad"
+      },
+      {
+        "path": "test/Altinn.Dan.Plugin.Trad.Test"
+      }
+    ],
+    "extensions": {
+      "recommendations": [
+        "ms-dotnettools.csharp",
+        "github.vscode-pull-request-github"
+      ]
+    }
+}
