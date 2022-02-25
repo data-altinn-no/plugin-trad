@@ -29,7 +29,7 @@ namespace Altinn.Dan.Plugin.Trad
                         },
                         new EvidenceValue()
                         {
-                            EvidenceValueName = "Praktiserende",
+                            EvidenceValueName = "ErRegistrert",
                             ValueType = EvidenceValueType.Boolean
                         },
                         new EvidenceValue()
