@@ -7,14 +7,8 @@ using Nadobe.Common.Models.Enums;
 
 namespace Altinn.Dan.Plugin.Trad
 {
-    public class Metadata
+    public class Metadata : IEvidenceSourceMetadata
     {
-        private ApplicationSettings _settings;
-
-        public Metadata(IOptions<ApplicationSettings> settings)
-        {
-            _settings = settings.Value;
-        }
 
         public List<EvidenceCode> GetEvidenceCodes()
         {
@@ -22,67 +16,36 @@ namespace Altinn.Dan.Plugin.Trad
             {
                 new EvidenceCode()
                 {
-                    EvidenceCodeName = "Person",
+                    EvidenceCodeName = "VerifiserAdvokat",
                     EvidenceSource = EvidenceSourceMetadata.SOURCE,
-                    ServiceContext = "ebevis",
-                    AccessMethod = EvidenceAccessMethod.Open,
+                    ServiceContext = "advokatregisteret",
+                    RequiredScopes = "advokatregisteret",
                     Values = new List<EvidenceValue>()
                     {
                         new EvidenceValue()
                         {
-                            EvidenceValueName = "firstName",
+                            EvidenceValueName = "Personnummer",
                             ValueType = EvidenceValueType.String
                         },
                         new EvidenceValue()
                         {
-                            EvidenceValueName = "lastName",
-                            ValueType = EvidenceValueType.String
+                            EvidenceValueName = "Praktiserende",
+                            ValueType = EvidenceValueType.Boolean
                         },
                         new EvidenceValue()
                         {
-                            EvidenceValueName = "company",
-                            ValueType = EvidenceValueType.String
-                        },
-                        new EvidenceValue()
-                        {
-                            EvidenceValueName = "county",
-                            ValueType = EvidenceValueType.String
-                        },
-                        new EvidenceValue()
-                        {
-                            EvidenceValueName = "city",
-                            ValueType = EvidenceValueType.String
-                        },
-                        new EvidenceValue()
-                        {
-                            EvidenceValueName = "cityCode",
+                            EvidenceValueName = "Tittel",
                             ValueType = EvidenceValueType.String
                         }
-
-                    }
-                },
-                new EvidenceCode()
-                {
-                    EvidenceCodeName = "Company",
-                    EvidenceSource = EvidenceSourceMetadata.SOURCE,
-                    ServiceContext = "ebevis",
-                    AccessMethod = EvidenceAccessMethod.Open,
-                    Values = new List<EvidenceValue>()
+                    },
+                    AuthorizationRequirements = new List<Requirement>()
                     {
-                        new EvidenceValue()
+                        new PartyTypeRequirement()
                         {
-                            EvidenceValueName = "Tlf",
-                            ValueType = EvidenceValueType.String
-                        },
-                        new EvidenceValue()
-                        {
-                            EvidenceValueName = "TeleFax",
-                            ValueType = EvidenceValueType.String
-                        },
-                        new EvidenceValue()
-                        {
-                            EvidenceValueName = "personList",
-                            ValueType = EvidenceValueType.JsonSchema
+                            AllowedPartyTypes = new AllowedPartyTypesList()
+                            {
+                                new KeyValuePair<AccreditationPartyTypes, PartyTypeConstraint>(AccreditationPartyTypes.Requestor,PartyTypeConstraint.PublicAgency)
+                            }
                         }
                     }
                 }
@@ -114,18 +77,16 @@ namespace Altinn.Dan.Plugin.Trad
 
         public const int ERROR_CERTIFICATE_OF_REGISTRATION_NOT_AVAILABLE = 9;
 
-        private ApplicationSettings _settings;
-        private IOptions<ApplicationSettings> _appSettings;
+        private readonly IOptions<ApplicationSettings> _settings;
 
         public EvidenceSourceMetadata(IOptions<ApplicationSettings> settings)
         {
-            _settings = settings.Value;
-            _appSettings = settings;
+            _settings = settings;
         }
 
         public List<EvidenceCode> GetEvidenceCodes()
         {
-            return new Metadata(_appSettings).GetEvidenceCodes();
+            return new Metadata().GetEvidenceCodes();
         }
     }
 }

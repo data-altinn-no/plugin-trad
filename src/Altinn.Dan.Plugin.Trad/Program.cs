@@ -1,8 +1,11 @@
 using System;
+using System.Net.Http;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Altinn.Dan.Plugin.Trad.Config;
+using Microsoft.Azure.KeyVault;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,9 +49,6 @@ namespace Altinn.Dan.Plugin.Trad
                     ApplicationSettings = new ApplicationSettings();
                     context.Configuration.GetSection("ApplicationSettings").Bind(ApplicationSettings);
 
-                    // services.AddSingleton<IApplicationSettings, ApplicationSettings>();
-
-
                     services.AddStackExchangeRedisCache(option => { option.Configuration = ApplicationSettings.RedisConnectionString; });
 
                     var distributedCache = services.BuildServiceProvider().GetRequiredService<IDistributedCache>();
@@ -60,8 +60,20 @@ namespace Altinn.Dan.Plugin.Trad
                     services.AddPolicyRegistry(registry);
 
                     // Client configured with circuit breaker policies
+
+                    var cert = ApplicationSettings.keyVaultClient.GetCertificateAsync($"https://{ApplicationSettings.KeyVaultName}.vault.azure.net", ApplicationSettings.KeyVaultSslCertificate).Result;
+
                     services.AddHttpClient("SafeHttpClient", client => { client.Timeout = new TimeSpan(0, 0, 30); })
-                        .AddPolicyHandlerFromRegistry("defaultCircuitBreaker");
+                        .AddPolicyHandlerFromRegistry("defaultCircuitBreaker")
+                        .ConfigurePrimaryHttpMessageHandler(() =>
+                        {
+                            var handler = new HttpClientHandler();
+
+                            handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+                            handler.ClientCertificates.Add(new X509Certificate(cert.Cer));
+
+                            return handler;
+                        }); ;
 
                     // Client configured without circuit breaker policies. shorter timeout
                     services.AddHttpClient("CachedHttpClient", client => { client.Timeout = new TimeSpan(0, 0, 5); });
