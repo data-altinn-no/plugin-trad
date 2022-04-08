@@ -1,8 +1,10 @@
 using System;
 using System.Threading.Tasks;
-using Microsoft.Azure.KeyVault;
+using Azure.Security.KeyVault.Secrets;
+using Azure.Security.KeyVault.Certificates;
 using Microsoft.Azure.Services.AppAuthentication;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using Azure.Identity;
 
 namespace Altinn.Dan.Plugin.Trad.Config
 {
@@ -22,17 +24,27 @@ namespace Altinn.Dan.Plugin.Trad.Config
         public string KeyVaultClientId { get; set; }
         public string KeyVaultClientSecret { get; set; }
         public string KeyVaultSslCertificate { get; set; }
+        public string ApiKeySecret { get; set; }
 
 
-        public KeyVaultClient keyVaultClient
+        public SecretClient secretClient
         {
             get
             {
                 AzureServiceTokenProvider azureServiceTokenProvider = new AzureServiceTokenProvider();
-                return _keyVaultClient ??= new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(azureServiceTokenProvider.KeyVaultTokenCallback));
+                return _secretClient ??= new SecretClient(new Uri($"https://{KeyVaultName}.vault.azure.net/"), new DefaultAzureCredential());
             }
         }
 
-        private KeyVaultClient _keyVaultClient;
+        public CertificateClient certificateClient
+        {
+            get
+            {
+                return _certificateClient ??= new CertificateClient(new Uri($"https://{KeyVaultName}.vault.azure.net/"), new DefaultAzureCredential());
+            }
+        }
+
+        private SecretClient _secretClient;
+        private CertificateClient _certificateClient;
     }
 }
