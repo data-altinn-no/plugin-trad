@@ -61,19 +61,24 @@ namespace Altinn.Dan.Plugin.Trad
 
                     // Client configured with circuit breaker policies
 
-                    var cert = ApplicationSettings.keyVaultClient.GetCertificateAsync($"https://{ApplicationSettings.KeyVaultName}.vault.azure.net", ApplicationSettings.KeyVaultSslCertificate).Result;
+                    var cert = ApplicationSettings.certificateClient.GetCertificate(ApplicationSettings.KeyVaultSslCertificate).Value.Cer;
+                    var key = ApplicationSettings.secretClient.GetSecret(ApplicationSettings.ApiKeySecret).Value.Value;
 
-                    services.AddHttpClient("SafeHttpClient", client => { client.Timeout = new TimeSpan(0, 0, 30); })
+                    services.AddHttpClient("SafeHttpClient", client => {
+                            client.Timeout = new TimeSpan(0, 0, 30);
+                        client.DefaultRequestHeaders.Add("ApiKey", key);
+                        })
                         .AddPolicyHandlerFromRegistry("defaultCircuitBreaker")
                         .ConfigurePrimaryHttpMessageHandler(() =>
                         {
                             var handler = new HttpClientHandler();
 
                             handler.ClientCertificateOptions = ClientCertificateOption.Manual;
-                            handler.ClientCertificates.Add(new X509Certificate(cert.Cer));
+                            handler.ClientCertificates.Add(new X509Certificate2(cert));
 
                             return handler;
-                        }); ;
+                        })
+                        ;
 
                     // Client configured without circuit breaker policies. shorter timeout
                     services.AddHttpClient("CachedHttpClient", client => { client.Timeout = new TimeSpan(0, 0, 5); });

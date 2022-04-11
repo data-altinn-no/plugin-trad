@@ -37,7 +37,7 @@ namespace Altinn.Dan.Plugin.Trad
         }
 
         [Function("ImportRegistry")]
-        public async Task RunAsync([TimerTrigger("0 * * * *")] MyInfo myTimer)
+        public async Task RunAsync([TimerTrigger("0 */5 * * * *")] MyInfo myTimer)
         {
             if(myTimer.IsPastDue)
             {
