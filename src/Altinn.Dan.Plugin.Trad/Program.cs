@@ -25,17 +25,7 @@ namespace Altinn.Dan.Plugin.Trad
 
        
         private static Task Main(string[] args)
-        {
-            var builder = Host.CreateDefaultBuilder();
-            builder.ConfigureServices((context, services) =>
-            {
-            var config = context.Configuration;
-            var connection = config.GetValue<string>("RedisConnectionString");
-            var retry = config.GetValue<TimeSpan>("Breaker_RetryWaitTime");
-            });
-            builder.Build();
-
-
+        {           
             var host = new HostBuilder()
                 .ConfigureFunctionsWorkerDefaults()
                 .ConfigureServices((context, services) =>
