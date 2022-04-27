@@ -8,6 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Altinn.Dan.Plugin.Trad.Config;
 using Altinn.Dan.Plugin.Trad.Models;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -26,6 +28,7 @@ namespace Altinn.Dan.Plugin.Trad
         private ApplicationSettings _settings;
         private HttpClient _client;
         private IDistributedCache _cache;
+        private SecretClient _secretClient;
 
         public ImportRegistry(ILoggerFactory loggerFactory, IHttpClientFactory httpClientFactory, IOptions<ApplicationSettings> settings, IDistributedCache cache)
         {
@@ -34,6 +37,10 @@ namespace Altinn.Dan.Plugin.Trad
             _settings = settings.Value;
             _metadata = new EvidenceSourceMetadata(settings);
             _cache = cache;
+            _secretClient = new SecretClient(
+              new Uri($"https://{_settings.KeyVaultName}.vault.azure.net/"),
+              new DefaultAzureCredential());
+
         }
 
         [Function("ImportRegistry")]
@@ -57,6 +64,7 @@ namespace Altinn.Dan.Plugin.Trad
             try
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, _settings.RegistryURL);
+                request.Headers.Add("ApiKey", _secretClient.GetSecret(_settings.ApiKeySecret).Value.Value);
                 result = await _client.SendAsync(request);
             }
             catch (HttpRequestException ex)

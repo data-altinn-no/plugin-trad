@@ -10,7 +10,7 @@ namespace Altinn.Dan.Plugin.Trad.Config
 {
     public class ApplicationSettings : IApplicationSettings
     {
- 
+
         public string RedisConnectionString { get; set; }
         public bool IsTest { get; set; }
 
@@ -25,26 +25,5 @@ namespace Altinn.Dan.Plugin.Trad.Config
         public string KeyVaultClientSecret { get; set; }
         public string KeyVaultSslCertificate { get; set; }
         public string ApiKeySecret { get; set; }
-
-
-        public SecretClient secretClient
-        {
-            get
-            {
-                AzureServiceTokenProvider azureServiceTokenProvider = new AzureServiceTokenProvider();
-                return _secretClient ??= new SecretClient(new Uri($"https://{KeyVaultName}.vault.azure.net/"), new DefaultAzureCredential());
-            }
-        }
-
-        public CertificateClient certificateClient
-        {
-            get
-            {
-                return _certificateClient ??= new CertificateClient(new Uri($"https://{KeyVaultName}.vault.azure.net/"), new DefaultAzureCredential());
-            }
-        }
-
-        private SecretClient _secretClient;
-        private CertificateClient _certificateClient;
     }
 }

@@ -11,8 +11,6 @@ namespace Altinn.Dan.Plugin.Trad.Config
         TimeSpan Breaker_OpenCircuitTime { get; }
         bool IsTest { get; }
         string RegistryURL { get; }
-        CertificateClient certificateClient { get; }
-        SecretClient secretClient { get; }
         string KeyVaultSslCertificate { get; }
         string KeyVaultName { get; }
         string ApiKeySecret { get; }

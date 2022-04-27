@@ -10,6 +10,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Caching.Distributed;
 using Polly.Extensions.Http;
@@ -24,17 +25,7 @@ namespace Altinn.Dan.Plugin.Trad
 
        
         private static Task Main(string[] args)
-        {
-            var builder = Host.CreateDefaultBuilder();
-            builder.ConfigureServices((context, services) =>
-            {
-            var config = context.Configuration;
-            var connection = config.GetValue<string>("RedisConnectionString");
-            var retry = config.GetValue<TimeSpan>("Breaker_RetryWaitTime");
-            });
-            builder.Build();
-
-
+        {           
             var host = new HostBuilder()
                 .ConfigureFunctionsWorkerDefaults()
                 .ConfigureServices((context, services) =>
@@ -44,10 +35,10 @@ namespace Altinn.Dan.Plugin.Trad
 
                     services.AddSingleton<EvidenceSourceMetadata>();
 
-                    services.Configure<ApplicationSettings>(context.Configuration.GetSection("ApplicationSettings"));
+                    services.AddOptions<ApplicationSettings>()
+                        .Configure<IConfiguration>((settings, configuration) => configuration.Bind(settings));
 
-                    ApplicationSettings = new ApplicationSettings();
-                    context.Configuration.GetSection("ApplicationSettings").Bind(ApplicationSettings);
+                    ApplicationSettings = services.BuildServiceProvider().GetRequiredService<IOptions<ApplicationSettings>>().Value;
 
                     services.AddStackExchangeRedisCache(option => { option.Configuration = ApplicationSettings.RedisConnectionString; });
 
@@ -61,23 +52,10 @@ namespace Altinn.Dan.Plugin.Trad
 
                     // Client configured with circuit breaker policies
 
-                    var cert = ApplicationSettings.certificateClient.GetCertificate(ApplicationSettings.KeyVaultSslCertificate).Value.Cer;
-                    var key = ApplicationSettings.secretClient.GetSecret(ApplicationSettings.ApiKeySecret).Value.Value;
-
                     services.AddHttpClient("SafeHttpClient", client => {
                             client.Timeout = new TimeSpan(0, 0, 30);
-                        client.DefaultRequestHeaders.Add("ApiKey", key);
                         })
                         .AddPolicyHandlerFromRegistry("defaultCircuitBreaker")
-                        .ConfigurePrimaryHttpMessageHandler(() =>
-                        {
-                            var handler = new HttpClientHandler();
-
-                            handler.ClientCertificateOptions = ClientCertificateOption.Manual;
-                            handler.ClientCertificates.Add(new X509Certificate2(cert));
-
-                            return handler;
-                        })
                         ;
 
                     // Client configured without circuit breaker policies. shorter timeout

@@ -27,7 +27,7 @@ namespace Altinn.Dan.Plugin.Trad
         }
 
         [Function("VerifiserAdvokat")]
-        public async Task<HttpResponseData> RunAsync([HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData req, FunctionContext context)
+        public async Task<HttpResponseData> RunAsync([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, FunctionContext context)
         {
             _logger = context.GetLogger(context.FunctionDefinition.Name);
             _logger.LogInformation("C# HTTP trigger function processed a request.");
