@@ -31,7 +31,7 @@ namespace Altinn.Dan.Plugin.Trad.Test
 
             // Setup 
             var mockCache = new MockCache();
-            var options = Options.Create(new ApplicationSettings() { RegistryURL = "http://some_url.blahblah.nope", KeyVaultName = "no.such.keyvault", ApiKey = "secretapikey"});
+            var options = Options.Create(new ApplicationSettings() { RegistryURL = "http://some_url.blahblah.nope", ApiKey = "secretapikey"});
             var func = new ImportRegistry(_loggerFactory, _mockFactory.Object, options, mockCache);
             var timer = new MyInfo
             {

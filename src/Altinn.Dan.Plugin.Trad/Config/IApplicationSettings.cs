@@ -4,13 +4,14 @@ namespace Altinn.Dan.Plugin.Trad.Config
 {
     public interface IApplicationSettings
     {
-        string RedisConnectionString { get; }
-        TimeSpan Breaker_RetryWaitTime { get; }
-        TimeSpan Breaker_OpenCircuitTime { get; }
-        bool IsTest { get; }
-        string RegistryURL { get; }
-        string KeyVaultSslCertificate { get; }
-        string KeyVaultName { get; }
-        string ApiKey { get; }
+        string RedisConnectionString { get; set; }
+
+        int BreakerFailuresBeforeTripping { get; set; }
+
+        TimeSpan BreakerOpenCircuitTime { get; set; }
+
+        string RegistryURL { get; set; }
+
+        string ApiKey { get; set; }
     }
 }

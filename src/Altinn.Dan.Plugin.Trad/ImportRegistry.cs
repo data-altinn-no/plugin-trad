@@ -74,13 +74,13 @@ namespace Altinn.Dan.Plugin.Trad
             }
             catch (HttpRequestException ex)
             {
-                throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ERROR_CCR_UPSTREAM_ERROR, null, ex);
+                throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeUpstreamError, null, ex);
             }
 
             if (!result.IsSuccessStatusCode)
             {
                 _logger.LogError("Unable to fetch persons from TRAD, statuscode: {code} reasonphrase: {reason}", result.StatusCode.ToString(), result.ReasonPhrase);
-                throw new EvidenceSourcePermanentClientException(EvidenceSourceMetadata.ERROR_CCR_UPSTREAM_ERROR, "Unable to fetch persons from TRAD");
+                throw new EvidenceSourcePermanentClientException(EvidenceSourceMetadata.ErrorCodeUpstreamError, "Unable to fetch persons from TRAD");
             }
 
             try
@@ -90,7 +90,7 @@ namespace Altinn.Dan.Plugin.Trad
             }
             catch (Exception e) {
                 _logger.LogError("Unable to decode response from TRAD. {exception}: {message}", e.GetType().Name, e.Message);
-                throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ERROR_CCR_UPSTREAM_ERROR,
+                throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeUpstreamError,
                     "Did not understand the data model returned from upstream source");
             }
         }

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,14 +23,14 @@ namespace Altinn.Dan.Plugin.Trad.Test
             return _backingStore;
         }
 
-        public byte[]? Get(string key)
+        public byte[] Get(string key)
         {
             return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_backingStore[key]));
         }
 
-        public async Task<byte[]> GetAsync(string key, CancellationToken token = new CancellationToken())
+        public async Task<byte[]> GetAsync(string key, CancellationToken token = new())
         {
-            return await Task.FromResult<byte[]>(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_backingStore[key]))!);
+            return await Task.FromResult(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_backingStore[key])));
         }
 
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
@@ -40,7 +39,7 @@ namespace Altinn.Dan.Plugin.Trad.Test
         }
 
         public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options,
-            CancellationToken token = new CancellationToken())
+            CancellationToken token = new())
         {
             _backingStore[key] = JsonConvert.DeserializeObject<Person>(Encoding.UTF8.GetString(value));
             await Task.CompletedTask;
@@ -51,7 +50,7 @@ namespace Altinn.Dan.Plugin.Trad.Test
             throw new NotImplementedException();
         }
 
-        public Task RefreshAsync(string key, CancellationToken token = new CancellationToken())
+        public Task RefreshAsync(string key, CancellationToken token = new())
         {
             throw new NotImplementedException();
         }
@@ -61,7 +60,7 @@ namespace Altinn.Dan.Plugin.Trad.Test
             throw new NotImplementedException();
         }
 
-        public Task RemoveAsync(string key, CancellationToken token = new CancellationToken())
+        public Task RemoveAsync(string key, CancellationToken token = new())
         {
             throw new NotImplementedException();
         }
