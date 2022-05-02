@@ -59,7 +59,7 @@ namespace Altinn.Dan.Plugin.Trad
                     {
                         new MaskinportenScopeRequirement()
                         {
-                            RequiredScopes = new List<string>() { "altinn:dataaltinnno/advokatregisteret.person" }
+                            RequiredScopes = new List<string>() { "altinn:dataaltinnno/advokatreg-person" }
                         }
                     }
                 }
