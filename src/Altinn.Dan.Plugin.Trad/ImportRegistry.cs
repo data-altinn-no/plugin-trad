@@ -55,7 +55,7 @@ namespace Altinn.Dan.Plugin.Trad
             _logger.LogInformation($"Next scheduled import at: {myTimer.ScheduleStatus.Next}");
 
             var registry = await GetPeople();
-            UpdateCache(registry);
+            await UpdateCache(registry);
         }
 
         private async Task<List<Person>> GetPeople()
@@ -87,7 +87,7 @@ namespace Altinn.Dan.Plugin.Trad
             return response;
         }
 
-        private void UpdateCache(List<Person> registry)
+        private async Task UpdateCache(List<Person> registry)
         {
             var sha = SHA256.Create();
             foreach(Person p in registry)
@@ -97,7 +97,10 @@ namespace Altinn.Dan.Plugin.Trad
                 var plainTextBytes = Encoding.UTF8.GetBytes("tr-registry-" + p.ssn);
                 var key = Convert.ToBase64String(plainTextBytes);
 
-                _cache.Set(key, Encoding.UTF8.GetBytes(entry), null);
+                await _cache.SetAsync(key, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpiration = new DateTimeOffset(DateTime.UtcNow.AddHours(1), TimeSpan.Zero)
+                });
             }
         }
     }
