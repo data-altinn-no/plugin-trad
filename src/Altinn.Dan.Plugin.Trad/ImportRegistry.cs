@@ -83,7 +83,6 @@ namespace Altinn.Dan.Plugin.Trad
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, _settings.RegistryURL);
                 var apiKeySecret = await _secretClient.GetSecretAsync(_settings.ApiKeySecret);
-                _logger.LogDebug("Using API key: " + apiKeySecret);
                 request.Headers.Add("ApiKey", apiKeySecret.Value.Value);
                 result = await _client.SendAsync(request);
             }
@@ -98,17 +97,16 @@ namespace Altinn.Dan.Plugin.Trad
                 throw new EvidenceSourcePermanentClientException(EvidenceSourceMetadata.ERROR_CCR_UPSTREAM_ERROR, "Unable to fetch persons from TRAD");
             }
 
-            var personsJson = await result.Content.ReadAsStringAsync();
-            _logger.LogDebug("Persons JSON: {persons}", personsJson);
-
-            var response = JsonConvert.DeserializeObject<List<Person>>(personsJson);
-            if (response == null)
+            try
             {
+                var response = JsonConvert.DeserializeObject<List<Person>>(await result.Content.ReadAsStringAsync());
+                return response;
+            }
+            catch (Exception e) {
+                _logger.LogError("Unable to decode response from TRAD. {exception}: {message}", e.GetType().Name, e.Message);
                 throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ERROR_CCR_UPSTREAM_ERROR,
                     "Did not understand the data model returned from upstream source");
             }
-
-            return response;
         }
 
         private async Task UpdateCache(List<Person> registry)
@@ -118,6 +116,11 @@ namespace Altinn.Dan.Plugin.Trad
                 if (p.ssn == null)
                 {
                     continue;
+                }
+
+                if (p.ssn.Length == 10)
+                {
+                    p.ssn = "0" + p.ssn;
                 }
 
                 var key = Helpers.GetCacheKeyForSsn(p.ssn);
