@@ -1,10 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using Azure.Security.KeyVault.Secrets;
-using Azure.Security.KeyVault.Certificates;
-using Microsoft.Azure.Services.AppAuthentication;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
-using Azure.Identity;
 
 namespace Altinn.Dan.Plugin.Trad.Config
 {

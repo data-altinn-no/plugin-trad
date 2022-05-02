@@ -1,5 +1,3 @@
-using Azure.Security.KeyVault.Certificates;
-using Azure.Security.KeyVault.Secrets;
 using System;
 
 namespace Altinn.Dan.Plugin.Trad.Config

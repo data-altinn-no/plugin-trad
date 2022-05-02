@@ -1,21 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Net;
 using System.Net.Http;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Altinn.Dan.Plugin.Trad.Config;
 using Altinn.Dan.Plugin.Trad.Models;
-using Azure.Identity;
-using Azure.Security.KeyVault.Secrets;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nadobe.Common.Exceptions;
-using Nadobe.Common.Models;
 using Nadobe.Common.Util;
 using Newtonsoft.Json;
 
@@ -24,17 +18,15 @@ namespace Altinn.Dan.Plugin.Trad
     public class ImportRegistry
     {
         private readonly ILogger _logger;
-        private EvidenceSourceMetadata _metadata;
-        private ApplicationSettings _settings;
-        private HttpClient _client;
-        private IDistributedCache _cache;
+        private readonly ApplicationSettings _settings;
+        private readonly HttpClient _client;
+        private readonly IDistributedCache _cache;
 
         public ImportRegistry(ILoggerFactory loggerFactory, IHttpClientFactory httpClientFactory, IOptions<ApplicationSettings> settings, IDistributedCache cache)
         {
             _client = httpClientFactory.CreateClient("SafeHttpClient");
             _logger = loggerFactory.CreateLogger<ImportRegistry>();
             _settings = settings.Value;
-            _metadata = new EvidenceSourceMetadata(settings);
             _cache = cache;
         }
 
@@ -54,14 +46,14 @@ namespace Altinn.Dan.Plugin.Trad
             }
 
             List<Person> registry;
-            using (var t = _logger.Timer("es-trad-fetch-people"))
+            using (var _ = _logger.Timer("es-trad-fetch-people"))
             {
                 _logger.LogDebug($"Attempting fetch from {_settings.RegistryURL}");
                 registry = await GetPeople();
                 _logger.LogDebug($"Fetched {registry.Count} entries");
             }
 
-            using (var t = _logger.Timer("es-trad-update-cache"))
+            using (var _ = _logger.Timer("es-trad-update-cache"))
             {
                 _logger.LogDebug($"Updating cache with {registry.Count} root entries");
                 await UpdateCache(registry);
@@ -147,6 +139,7 @@ namespace Altinn.Dan.Plugin.Trad
                         seenPersons[associate.Ssn] = associate with { IsaAuthorizedRepresentativeFor = new List<Person>() };
                     }
 
+                    seenPersons[associate.Ssn].IsaAuthorizedRepresentativeFor ??= new List<Person>();
                     seenPersons[associate.Ssn].IsaAuthorizedRepresentativeFor.Add(person with { AuthorizedRepresentatives = null });
                 }
             }
