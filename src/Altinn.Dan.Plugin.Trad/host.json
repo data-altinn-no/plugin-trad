@@ -3,12 +3,12 @@
     "logging": {
         "applicationInsights": {
             "samplingSettings": {
-                "isEnabled": true,
+                "isEnabled": false,
                 "excludedTypes": "Request"
             }
         },
         "logLevel": {
-            "default": "Information",
+            "default": "Debug",
             "Microsoft": "Warning"
         }
     }

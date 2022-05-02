@@ -78,11 +78,13 @@ namespace Altinn.Dan.Plugin.Trad
 
         private async Task<List<Person>> GetPeople()
         {
-            HttpResponseMessage result = null;
+            HttpResponseMessage result;
             try
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, _settings.RegistryURL);
-                request.Headers.Add("ApiKey", _secretClient.GetSecret(_settings.ApiKeySecret).Value.Value);
+                var apiKeySecret = await _secretClient.GetSecretAsync(_settings.ApiKeySecret);
+                _logger.LogDebug("Using API key: " + apiKeySecret);
+                request.Headers.Add("ApiKey", apiKeySecret.Value.Value);
                 result = await _client.SendAsync(request);
             }
             catch (HttpRequestException ex)
@@ -90,12 +92,16 @@ namespace Altinn.Dan.Plugin.Trad
                 throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ERROR_CCR_UPSTREAM_ERROR, null, ex);
             }
 
-            if (result.StatusCode == HttpStatusCode.NotFound)
+            if (!result.IsSuccessStatusCode)
             {
-                throw new EvidenceSourcePermanentClientException(EvidenceSourceMetadata.ERROR_CCR_UPSTREAM_ERROR, $"Registry data could not be found");
+                _logger.LogError("Unable to fetch persons from TRAD, statuscode: {code} reasonphrase: {reason}", result.StatusCode.ToString(), result.ReasonPhrase);
+                throw new EvidenceSourcePermanentClientException(EvidenceSourceMetadata.ERROR_CCR_UPSTREAM_ERROR, "Unable to fetch persons from TRAD");
             }
 
-            var response = JsonConvert.DeserializeObject<List<Person>>(await result.Content.ReadAsStringAsync());
+            var personsJson = await result.Content.ReadAsStringAsync();
+            _logger.LogDebug("Persons JSON: {persons}", personsJson);
+
+            var response = JsonConvert.DeserializeObject<List<Person>>(personsJson);
             if (response == null)
             {
                 throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ERROR_CCR_UPSTREAM_ERROR,
