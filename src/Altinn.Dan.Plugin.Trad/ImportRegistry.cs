@@ -68,7 +68,7 @@ namespace Altinn.Dan.Plugin.Trad
                 _logger.LogDebug($"Done updating cache");
             }
 
-            _logger.LogInformation($"Import completed. Next scheduled import at: {myTimer.ScheduleStatus.Next}");
+            _logger.LogInformation($"Import completed, now has {registry.Count} entries. Next scheduled import at: {myTimer.ScheduleStatus.Next}");
         }
 
         private async Task<List<Person>> GetPeople()
