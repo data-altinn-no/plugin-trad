@@ -46,16 +46,29 @@ namespace Altinn.Dan.Plugin.Trad
         [Function("ImportRegistry")]
         public async Task RunAsync([TimerTrigger("0 */5 * * * *")] MyInfo myTimer)
         {
-            if(myTimer.IsPastDue)
+            _logger.LogInformation($"Registry Import executed at: {DateTime.Now}");
+
+            if (myTimer.IsPastDue)
             {
                 _logger.LogInformation($"Registry import was not run on schedule");
             }
 
-            _logger.LogInformation($"Registry Import executed at: {DateTime.Now}");
-            _logger.LogInformation($"Next scheduled import at: {myTimer.ScheduleStatus.Next}");
+            List<Person> registry;
+            using (var t = _logger.Timer("es-trad-fetch-people"))
+            {
+                _logger.LogDebug($"Attempting fetch from {_settings.RegistryURL}");
+                registry = await GetPeople();
+                _logger.LogDebug($"Fetched {registry.Count} entries");
+            }
 
-            var registry = await GetPeople();
-            await UpdateCache(registry);
+            using (var t = _logger.Timer("es-trad-update-cache"))
+            {
+                _logger.LogDebug($"Updating cache with {registry.Count} entries");
+                await UpdateCache(registry);
+                _logger.LogDebug($"Done updating cache");
+            }
+
+            _logger.LogInformation($"Import completed. Next scheduled import at: {myTimer.ScheduleStatus.Next}");
         }
 
         private async Task<List<Person>> GetPeople()

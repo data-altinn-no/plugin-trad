@@ -18,7 +18,7 @@ namespace Altinn.Dan.Plugin.Trad
                 {
                     EvidenceCodeName = "VerifiserAdvokat",
                     EvidenceSource = EvidenceSourceMetadata.SOURCE,
-                    ServiceContext = "advokatregisteret",
+                    BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
                     RequiredScopes = "advokatregisteret",
                     Values = new List<EvidenceValue>()
                     {
