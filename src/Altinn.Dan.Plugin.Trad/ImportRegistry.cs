@@ -28,7 +28,6 @@ namespace Altinn.Dan.Plugin.Trad
         private ApplicationSettings _settings;
         private HttpClient _client;
         private IDistributedCache _cache;
-        private SecretClient _secretClient;
 
         public ImportRegistry(ILoggerFactory loggerFactory, IHttpClientFactory httpClientFactory, IOptions<ApplicationSettings> settings, IDistributedCache cache)
         {
@@ -37,10 +36,6 @@ namespace Altinn.Dan.Plugin.Trad
             _settings = settings.Value;
             _metadata = new EvidenceSourceMetadata(settings);
             _cache = cache;
-            _secretClient = new SecretClient(
-              new Uri($"https://{_settings.KeyVaultName}.vault.azure.net/"),
-              new DefaultAzureCredential());
-
         }
 
         [Function("ImportRegistry")]
@@ -68,12 +63,12 @@ namespace Altinn.Dan.Plugin.Trad
 
             using (var t = _logger.Timer("es-trad-update-cache"))
             {
-                _logger.LogDebug($"Updating cache with {registry.Count} entries");
+                _logger.LogDebug($"Updating cache with {registry.Count} root entries");
                 await UpdateCache(registry);
                 _logger.LogDebug($"Done updating cache");
             }
 
-            _logger.LogInformation($"Import completed, now has {registry.Count} entries. Next scheduled import at: {myTimer.ScheduleStatus.Next}");
+            _logger.LogInformation($"Import completed, now has {registry.Count} root entries. Next scheduled import at: {myTimer.ScheduleStatus.Next}");
         }
 
         private async Task<List<Person>> GetPeople()
@@ -82,8 +77,7 @@ namespace Altinn.Dan.Plugin.Trad
             try
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, _settings.RegistryURL);
-                var apiKeySecret = await _secretClient.GetSecretAsync(_settings.ApiKeySecret);
-                request.Headers.Add("ApiKey", apiKeySecret.Value.Value);
+                request.Headers.Add("ApiKey", _settings.ApiKey);
                 result = await _client.SendAsync(request);
             }
             catch (HttpRequestException ex)
@@ -111,44 +105,81 @@ namespace Altinn.Dan.Plugin.Trad
 
         private async Task UpdateCache(List<Person> registry)
         {
-            foreach (Person p in registry)
+            var seenPersons = new Dictionary<string, Person>();
+
+            _logger.LogInformation("Starting updating principals ...");
+            var principalCount = 0;
+
+            foreach (Person person in registry)
             {
-                if (p.Ssn == null)
+                if (person.Ssn == null)
                 {
                     continue;
                 }
 
-                await UpdateCacheEntry(p);
+                if (person.Ssn.Length == 10)
+                {
+                    person.Ssn = "0" + person.Ssn;
+                }
+
+                if (seenPersons.ContainsKey(person.Ssn))
+                {
+                    // We skip any associates found on root level, as we insert these ourselves mapping to 
+                    // any principals
+                    continue;
+                }
+
+                seenPersons[person.Ssn] = person with {};
+                principalCount++;
 
                 // Explicitly add associates with a link to the principal
-                if (p.IsPrincipalFor == null || p.IsPrincipalFor.Count == 0) continue;
+                if (person.AuthorizedRepresentatives == null || person.AuthorizedRepresentatives.Count == 0) continue;
 
-                var principal = new Person()
+                foreach (var associate in person.AuthorizedRepresentatives)
                 {
-                    Ssn = p.Ssn,
-                    TitleType = p.TitleType
-                };
+                    if (associate.Ssn.Length == 10)
+                    {
+                        associate.Ssn = "0" + associate.Ssn;
+                    }
 
-                foreach (var associate in p.IsPrincipalFor)
-                {
-                    associate.Principal = principal;
-                    await UpdateCacheEntry(associate);
+                    if (!seenPersons.ContainsKey(associate.Ssn))
+                    {
+                        seenPersons[associate.Ssn] = associate with { IsaAuthorizedRepresentativeFor = new List<Person>() };
+                    }
+
+                    seenPersons[associate.Ssn].IsaAuthorizedRepresentativeFor.Add(person with { AuthorizedRepresentatives = null });
                 }
             }
+
+            _logger.LogInformation($"Completed building list of {principalCount} principals and {seenPersons.Count-principalCount} associates, writing total {seenPersons.Count} entries to store ...");
+
+            await UpdateCacheEntries(seenPersons);
+
+            _logger.LogInformation("Completed writing persons");
         }
 
-        private async Task UpdateCacheEntry(Person p)
+        private async Task UpdateCacheEntries(Dictionary<string, Person> persons)
         {
-            if (p.Ssn.Length == 10)
-            {
-                p.Ssn = "0" + p.Ssn;
-            }
 
-            var key = Helpers.GetCacheKeyForSsn(p.Ssn);
-            var entry = JsonConvert.SerializeObject(p);
+            ParallelOptions parallelOptions = new()
+            {
+                MaxDegreeOfParallelism = 25
+            };
+
+            await Parallel.ForEachAsync(persons.Values, parallelOptions, async (person, _) =>
+            {
+                await UpdateCacheEntry(person);
+            });
+        }
+
+        private async Task UpdateCacheEntry(Person person)
+        {
+            var key = Helpers.GetCacheKeyForSsn(person.Ssn);
+            var entry = JsonConvert.SerializeObject(person);
+
             await _cache.SetAsync(key, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
             {
-                AbsoluteExpiration = new DateTimeOffset(DateTime.UtcNow.AddHours(1), TimeSpan.Zero)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
             });
         }
     }

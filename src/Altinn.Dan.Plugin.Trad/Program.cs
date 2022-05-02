@@ -40,7 +40,10 @@ namespace Altinn.Dan.Plugin.Trad
 
                     ApplicationSettings = services.BuildServiceProvider().GetRequiredService<IOptions<ApplicationSettings>>().Value;
 
-                    services.AddStackExchangeRedisCache(option => { option.Configuration = ApplicationSettings.RedisConnectionString; });
+                    services.AddStackExchangeRedisCache(option =>
+                    {
+                        option.Configuration = ApplicationSettings.RedisConnectionString;
+                    });
 
                     var distributedCache = services.BuildServiceProvider().GetRequiredService<IDistributedCache>();
                     var registry = new PolicyRegistry()

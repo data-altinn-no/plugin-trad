@@ -7,18 +7,18 @@ using Newtonsoft.Json;
 
 namespace Altinn.Dan.Plugin.Trad.Models
 {
-    public class Person
+    public record Person
     {
         [JsonProperty("ssn")]
         public string Ssn { get; set; }
         
         [JsonProperty("title")]
-        public TitleType TitleType { get; set; }
+        public TitleType Title { get; set; }
 
         [JsonProperty("authorizedRepresentatives", NullValueHandling = NullValueHandling.Ignore)]
-        public List<Person> IsPrincipalFor { get; set; }
+        public List<Person> AuthorizedRepresentatives { get; set; }
 
-        [JsonProperty("principal", NullValueHandling = NullValueHandling.Ignore)]
-        public Person Principal { get; set; }
+        [JsonProperty("isAuthorizedRepresentativeFor", NullValueHandling = NullValueHandling.Ignore)]
+        public List<Person> IsaAuthorizedRepresentativeFor { get; set; }
     }
 }

@@ -24,6 +24,6 @@ namespace Altinn.Dan.Plugin.Trad.Config
         public string KeyVaultClientId { get; set; }
         public string KeyVaultClientSecret { get; set; }
         public string KeyVaultSslCertificate { get; set; }
-        public string ApiKeySecret { get; set; }
+        public string ApiKey { get; set; }
     }
 }

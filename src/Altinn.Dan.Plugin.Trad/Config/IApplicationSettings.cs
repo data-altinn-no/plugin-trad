@@ -13,6 +13,6 @@ namespace Altinn.Dan.Plugin.Trad.Config
         string RegistryURL { get; }
         string KeyVaultSslCertificate { get; }
         string KeyVaultName { get; }
-        string ApiKeySecret { get; }
+        string ApiKey { get; }
     }
 }

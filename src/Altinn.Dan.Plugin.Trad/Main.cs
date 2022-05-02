@@ -86,7 +86,7 @@ namespace Altinn.Dan.Plugin.Trad
                 Person person = JsonConvert.DeserializeObject<Person>(Encoding.UTF8.GetString(res));
 
                 ecb.AddEvidenceValue("ErRegistrert", true, EvidenceSourceMetadata.SOURCE);
-                ecb.AddEvidenceValue("Tittel", person.TitleType, EvidenceSourceMetadata.SOURCE);
+                ecb.AddEvidenceValue("Tittel", person.Title, EvidenceSourceMetadata.SOURCE);
             }
             else
             {
