@@ -23,7 +23,7 @@ namespace Altinn.Dan.Plugin.Trad
                     {
                         new EvidenceValue()
                         {
-                            EvidenceValueName = "Personnummer",
+                            EvidenceValueName = "Fodselsnummer",
                             ValueType = EvidenceValueType.String
                         },
                         new EvidenceValue()

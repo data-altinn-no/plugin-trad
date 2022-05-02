@@ -44,7 +44,12 @@ namespace Altinn.Dan.Plugin.Trad
         }
 
         [Function("ImportRegistry")]
-        public async Task RunAsync([TimerTrigger("0 */5 * * * *")] MyInfo myTimer)
+        public async Task RunAsync([TimerTrigger("0 */5 * * * *"
+#if DEBUG
+                , RunOnStartup = true
+#endif
+            )
+        ] MyInfo myTimer)
         {
             _logger.LogInformation($"Registry Import executed at: {DateTime.Now}");
 
@@ -102,14 +107,16 @@ namespace Altinn.Dan.Plugin.Trad
 
         private async Task UpdateCache(List<Person> registry)
         {
-            var sha = SHA256.Create();
             foreach(Person p in registry)
             {
+                if (p.ssn == null)
+                {
+                    continue;
+                }
+
+                var key = Helpers.GetCacheKeyForSsn(p.ssn);
+                p.ssn = Helpers.MaskSsn(p.ssn);
                 var entry = JsonConvert.SerializeObject(p);
-
-                var plainTextBytes = Encoding.UTF8.GetBytes("tr-registry-" + p.ssn);
-                var key = Convert.ToBase64String(plainTextBytes);
-
                 await _cache.SetAsync(key, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
                 {
                     AbsoluteExpiration = new DateTimeOffset(DateTime.UtcNow.AddHours(1), TimeSpan.Zero)

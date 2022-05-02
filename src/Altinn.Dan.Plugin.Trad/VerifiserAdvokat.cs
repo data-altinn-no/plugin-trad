@@ -45,16 +45,14 @@ namespace Altinn.Dan.Plugin.Trad
 
         private async Task<List<EvidenceValue>> GetEvidenceValuesVerifiserAdvokat(EvidenceHarvesterRequest evidenceHarvesterRequest)
         {
-            var plainTextBytes = Encoding.UTF8.GetBytes("tr-registry-" + evidenceHarvesterRequest.OrganizationNumber);
-            var key = Convert.ToBase64String(plainTextBytes);
-
-            var res = await _cache.GetAsync(key);
-            Person person = JsonConvert.DeserializeObject<Person>(res.ToString());
+            var res = await _cache.GetAsync(Helpers.GetCacheKeyForSsn(evidenceHarvesterRequest.SubjectParty.NorwegianSocialSecurityNumber));
 
             var ecb = new EvidenceBuilder(new Metadata(), "VerifiserAdvokat");
-            ecb.AddEvidenceValue("Personnummer", evidenceHarvesterRequest.OrganizationNumber, EvidenceSourceMetadata.SOURCE);
+            ecb.AddEvidenceValue("Fodselsnummer", evidenceHarvesterRequest.SubjectParty.NorwegianSocialSecurityNumber, EvidenceSourceMetadata.SOURCE);
             if(res != null)
             {
+                Person person = JsonConvert.DeserializeObject<Person>(Encoding.UTF8.GetString(res));
+
                 ecb.AddEvidenceValue("ErRegistrert", true, EvidenceSourceMetadata.SOURCE);
                 ecb.AddEvidenceValue("Tittel", person.titleType, EvidenceSourceMetadata.SOURCE);
             }
