@@ -43,7 +43,7 @@ namespace Altinn.Dan.Plugin.Trad
                 },
                 new EvidenceCode()
                 {
-                    EvidenceCodeName = "HentPerson",
+                    EvidenceCodeName = "HentAdvokatRegisterPerson",
                     EvidenceSource = EvidenceSourceMetadata.SOURCE,
                     BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
                     Values = new List<EvidenceValue>()

@@ -46,7 +46,7 @@ namespace Altinn.Dan.Plugin.Trad
             return response;
         }
 
-        [Function("HentPerson")]
+        [Function("HentAdvokatRegisterPerson")]
         public async Task<HttpResponseData> RunAsyncHentPerson([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, FunctionContext context)
         {
             _logger = context.GetLogger(context.FunctionDefinition.Name);
@@ -55,7 +55,7 @@ namespace Altinn.Dan.Plugin.Trad
             var evidenceHarvesterRequest = JsonConvert.DeserializeObject<EvidenceHarvesterRequest>(requestBody);
 
             var response = req.CreateResponse(HttpStatusCode.OK);
-            var actionResult = await EvidenceSourceResponse.CreateResponse(null, () => GetEvidenceValuesHentPerson(evidenceHarvesterRequest)) as ObjectResult;
+            var actionResult = await EvidenceSourceResponse.CreateResponse(null, () => GetEvidenceValuesHentAdvokatRegisterPerson(evidenceHarvesterRequest)) as ObjectResult;
 
             await response.WriteAsJsonAsync(actionResult?.Value);
 
@@ -96,11 +96,11 @@ namespace Altinn.Dan.Plugin.Trad
             return ecb.GetEvidenceValues();
         }
 
-        private async Task<List<EvidenceValue>> GetEvidenceValuesHentPerson(EvidenceHarvesterRequest evidenceHarvesterRequest)
+        private async Task<List<EvidenceValue>> GetEvidenceValuesHentAdvokatRegisterPerson(EvidenceHarvesterRequest evidenceHarvesterRequest)
         {
             var res = await _cache.GetAsync(Helpers.GetCacheKeyForSsn(evidenceHarvesterRequest.SubjectParty.NorwegianSocialSecurityNumber));
 
-            var ecb = new EvidenceBuilder(new Metadata(), "HentPerson");
+            var ecb = new EvidenceBuilder(new Metadata(), "HentAdvokatRegisterPerson");
             
             if (res != null)
             {
