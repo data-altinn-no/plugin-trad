@@ -1,13 +1,19 @@
+using System.Collections.Generic;
+using System.IO;
 using System.Net;
-using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Altinn.Dan.Plugin.Trad.Config;
+using Altinn.Dan.Plugin.Trad.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nadobe;
-using Nadobe.Common.Exceptions;
+using Nadobe.Common.Models;
+using Nadobe.Common.Util;
 using Newtonsoft.Json;
 
 namespace Altinn.Dan.Plugin.Trad
@@ -15,47 +21,50 @@ namespace Altinn.Dan.Plugin.Trad
     public class Main
     {
         private ILogger _logger;
-        private HttpClient _client;
-        private ApplicationSettings _settings;
-        private EvidenceSourceMetadata _metadata;
+        private readonly EvidenceSourceMetadata _metadata;
+        private readonly IDistributedCache _cache;
 
-        public Main(IHttpClientFactory httpClientFactory, IOptions<ApplicationSettings> settings)
+        public Main(IOptions<ApplicationSettings> settings, IDistributedCache cache)
         {
-            _client = httpClientFactory.CreateClient("SafeHttpClient");
-            _settings = settings.Value;
             _metadata = new EvidenceSourceMetadata(settings);
+            _cache = cache;
         }
 
-        internal async Task<dynamic> MakeRequest(string target, string organizationNumber)
+        [Function("VerifiserAdvokat")]
+        public async Task<HttpResponseData> RunAsyncVerifiserAdvokat([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, FunctionContext context)
         {
-            HttpResponseMessage result = null;
-            try
-            {
-                var request = new HttpRequestMessage(HttpMethod.Get, target);
-                result = await _client.SendAsync(request);
-            }
-            catch (HttpRequestException ex)
-            {
-                throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ERROR_CCR_UPSTREAM_ERROR, null, ex);
-            }
+            _logger = context.GetLogger(context.FunctionDefinition.Name);
 
-            if (result.StatusCode == HttpStatusCode.NotFound)
-            {
-                throw new EvidenceSourcePermanentClientException(EvidenceSourceMetadata.ERROR_ORGANIZATION_NOT_FOUND, $"{organizationNumber} could not be found");
-            }
+            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            var evidenceHarvesterRequest = JsonConvert.DeserializeObject<EvidenceHarvesterRequest>(requestBody);
 
-            var response = JsonConvert.DeserializeObject(await result.Content.ReadAsStringAsync());
-            if (response == null)
-            {
-                throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ERROR_CCR_UPSTREAM_ERROR,
-                    "Did not understand the data model returned from upstream source");
-            }
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            var actionResult = await EvidenceSourceResponse.CreateResponse(null, () => GetEvidenceValuesVerifiserAdvokat(evidenceHarvesterRequest)) as ObjectResult;
+
+            await response.WriteAsJsonAsync(actionResult?.Value);
 
             return response;
         }
 
+        [Function("HentPerson")]
+        public async Task<HttpResponseData> RunAsyncHentPerson([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, FunctionContext context)
+        {
+            _logger = context.GetLogger(context.FunctionDefinition.Name);
+
+            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            var evidenceHarvesterRequest = JsonConvert.DeserializeObject<EvidenceHarvesterRequest>(requestBody);
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            var actionResult = await EvidenceSourceResponse.CreateResponse(null, () => GetEvidenceValuesHentPerson(evidenceHarvesterRequest)) as ObjectResult;
+
+            await response.WriteAsJsonAsync(actionResult?.Value);
+
+            return response;
+        }
+
+
         [Function(Constants.EvidenceSourceMetadataFunctionName)]
-        public async Task<HttpResponseData> Metadata(
+        public async Task<HttpResponseData> RunAsyncMetadata(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequestData req,
             FunctionContext context)
         {
@@ -64,6 +73,45 @@ namespace Altinn.Dan.Plugin.Trad
             var response = req.CreateResponse(HttpStatusCode.OK);
             await response.WriteAsJsonAsync(_metadata.GetEvidenceCodes());
             return response;
+        }
+
+        private async Task<List<EvidenceValue>> GetEvidenceValuesVerifiserAdvokat(EvidenceHarvesterRequest evidenceHarvesterRequest)
+        {
+            var res = await _cache.GetAsync(Helpers.GetCacheKeyForSsn(evidenceHarvesterRequest.SubjectParty.NorwegianSocialSecurityNumber));
+
+            var ecb = new EvidenceBuilder(new Metadata(), "VerifiserAdvokat");
+            ecb.AddEvidenceValue("Fodselsnummer", evidenceHarvesterRequest.SubjectParty.NorwegianSocialSecurityNumber, EvidenceSourceMetadata.SOURCE);
+            if (res != null)
+            {
+                Person person = JsonConvert.DeserializeObject<Person>(Encoding.UTF8.GetString(res));
+
+                ecb.AddEvidenceValue("ErRegistrert", true, EvidenceSourceMetadata.SOURCE);
+                ecb.AddEvidenceValue("Tittel", person.TitleType, EvidenceSourceMetadata.SOURCE);
+            }
+            else
+            {
+                ecb.AddEvidenceValue("ErRegistrert", false, EvidenceSourceMetadata.SOURCE);
+            }
+
+            return ecb.GetEvidenceValues();
+        }
+
+        private async Task<List<EvidenceValue>> GetEvidenceValuesHentPerson(EvidenceHarvesterRequest evidenceHarvesterRequest)
+        {
+            var res = await _cache.GetAsync(Helpers.GetCacheKeyForSsn(evidenceHarvesterRequest.SubjectParty.NorwegianSocialSecurityNumber));
+
+            var ecb = new EvidenceBuilder(new Metadata(), "HentPerson");
+            
+            if (res != null)
+            {
+                ecb.AddEvidenceValue("default", Encoding.UTF8.GetString(res), EvidenceSourceMetadata.SOURCE);
+            }
+            else
+            {
+                ecb.AddEvidenceValue("default", "{}", EvidenceSourceMetadata.SOURCE);
+            }
+
+            return ecb.GetEvidenceValues();
         }
     }
 }

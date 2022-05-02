@@ -111,26 +111,45 @@ namespace Altinn.Dan.Plugin.Trad
 
         private async Task UpdateCache(List<Person> registry)
         {
-            foreach(Person p in registry)
+            foreach (Person p in registry)
             {
-                if (p.ssn == null)
+                if (p.Ssn == null)
                 {
                     continue;
                 }
 
-                if (p.ssn.Length == 10)
-                {
-                    p.ssn = "0" + p.ssn;
-                }
+                await UpdateCacheEntry(p);
 
-                var key = Helpers.GetCacheKeyForSsn(p.ssn);
-                p.ssn = Helpers.MaskSsn(p.ssn);
-                var entry = JsonConvert.SerializeObject(p);
-                await _cache.SetAsync(key, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
+                // Explicitly add associates with a link to the principal
+                if (p.IsPrincipalFor == null || p.IsPrincipalFor.Count == 0) continue;
+
+                var principal = new Person()
                 {
-                    AbsoluteExpiration = new DateTimeOffset(DateTime.UtcNow.AddHours(1), TimeSpan.Zero)
-                });
+                    Ssn = p.Ssn,
+                    TitleType = p.TitleType
+                };
+
+                foreach (var associate in p.IsPrincipalFor)
+                {
+                    associate.Principal = principal;
+                    await UpdateCacheEntry(associate);
+                }
             }
+        }
+
+        private async Task UpdateCacheEntry(Person p)
+        {
+            if (p.Ssn.Length == 10)
+            {
+                p.Ssn = "0" + p.Ssn;
+            }
+
+            var key = Helpers.GetCacheKeyForSsn(p.Ssn);
+            var entry = JsonConvert.SerializeObject(p);
+            await _cache.SetAsync(key, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
+            {
+                AbsoluteExpiration = new DateTimeOffset(DateTime.UtcNow.AddHours(1), TimeSpan.Zero)
+            });
         }
     }
 

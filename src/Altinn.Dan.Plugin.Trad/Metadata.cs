@@ -1,9 +1,12 @@
 using System.Collections.Generic;
 using Altinn.Dan.Plugin.Trad.Config;
+using Altinn.Dan.Plugin.Trad.Models;
 using Microsoft.Extensions.Options;
 using Nadobe.Common.Interfaces;
 using Nadobe.Common.Models;
 using Nadobe.Common.Models.Enums;
+using Newtonsoft.Json;
+using NJsonSchema;
 
 namespace Altinn.Dan.Plugin.Trad
 {
@@ -36,15 +39,27 @@ namespace Altinn.Dan.Plugin.Trad
                             EvidenceValueName = "Tittel",
                             ValueType = EvidenceValueType.String
                         }
+                    }
+                },
+                new EvidenceCode()
+                {
+                    EvidenceCodeName = "HentPerson",
+                    EvidenceSource = EvidenceSourceMetadata.SOURCE,
+                    BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
+                    Values = new List<EvidenceValue>()
+                    {
+                        new EvidenceValue()
+                        {
+                            EvidenceValueName = "default",
+                            ValueType = EvidenceValueType.JsonSchema,
+                            JsonSchemaDefintion = JsonSchema.FromType<Person>().ToJson(Formatting.None),
+                        }
                     },
                     AuthorizationRequirements = new List<Requirement>()
                     {
-                        new PartyTypeRequirement()
+                        new MaskinportenScopeRequirement()
                         {
-                            AllowedPartyTypes = new AllowedPartyTypesList()
-                            {
-                                new KeyValuePair<AccreditationPartyTypes, PartyTypeConstraint>(AccreditationPartyTypes.Requestor,PartyTypeConstraint.PublicAgency)
-                            }
+                            RequiredScopes = new List<string>() { "altinn:dataaltinnno/advokatregisteret.person" }
                         }
                     }
                 }
