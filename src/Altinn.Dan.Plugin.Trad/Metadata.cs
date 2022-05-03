@@ -66,7 +66,7 @@ namespace Altinn.Dan.Plugin.Trad
                         {
                             EvidenceValueName = "default",
                             ValueType = EvidenceValueType.JsonSchema,
-                            JsonSchemaDefintion = JsonSchema.FromType<Person>().ToJson(Formatting.None),
+                            JsonSchemaDefintion = JsonSchema.FromType<PersonExternal>().ToJson(Formatting.None),
                         }
                     },
                     AuthorizationRequirements = new List<Requirement>
