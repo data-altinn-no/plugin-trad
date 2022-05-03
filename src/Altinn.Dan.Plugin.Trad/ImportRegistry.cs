@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Altinn.Dan.Plugin.Trad.Config;
 using Altinn.Dan.Plugin.Trad.Models;
@@ -153,16 +155,23 @@ namespace Altinn.Dan.Plugin.Trad
 
         private async Task UpdateCacheEntries(Dictionary<string, Person> persons)
         {
+            // Number of concurrent tasks. 30 seems to do fine with current production workload.
+            var throttler = new SemaphoreSlim(30);
 
-            ParallelOptions parallelOptions = new()
+            var tasks = persons.Values.ToList().Select(async value =>
             {
-                MaxDegreeOfParallelism = 25
-            };
-
-            await Parallel.ForEachAsync(persons.Values, parallelOptions, async (person, _) =>
-            {
-                await UpdateCacheEntry(person);
+                await throttler.WaitAsync();
+                try
+                {
+                    await UpdateCacheEntry(value);
+                }
+                finally
+                {
+                    throttler.Release();
+                }
             });
+
+            await Task.WhenAll(tasks);
         }
 
         private async Task UpdateCacheEntry(Person person)
