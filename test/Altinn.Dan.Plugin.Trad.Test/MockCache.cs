@@ -11,14 +11,14 @@ namespace Altinn.Dan.Plugin.Trad.Test
 {
     public class MockCache : IDistributedCache
     {
-        private Dictionary<string, Person> _backingStore;
+        private Dictionary<string, PersonInternal> _backingStore;
 
         public MockCache()
         {
-            _backingStore = new Dictionary<string, Person>();
+            _backingStore = new Dictionary<string, PersonInternal>();
         }
 
-        public Dictionary<string, Person> GetAll()
+        public Dictionary<string, PersonInternal> GetAll()
         {
             return _backingStore;
         }
@@ -35,13 +35,13 @@ namespace Altinn.Dan.Plugin.Trad.Test
 
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
         {
-            _backingStore[key] = JsonConvert.DeserializeObject<Person>(Encoding.UTF8.GetString(value));
+            _backingStore[key] = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(value));
         }
 
         public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options,
             CancellationToken token = new())
         {
-            _backingStore[key] = JsonConvert.DeserializeObject<Person>(Encoding.UTF8.GetString(value));
+            _backingStore[key] = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(value));
             await Task.CompletedTask;
         }
 

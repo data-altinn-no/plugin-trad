@@ -15,14 +15,14 @@ namespace Altinn.Dan.Plugin.Trad
 
         public List<EvidenceCode> GetEvidenceCodes()
         {
-            return new List<EvidenceCode>()
+            return new List<EvidenceCode>
             {
                 new()
                 {
-                    EvidenceCodeName = "VerifiserAdvokat",
+                    EvidenceCodeName = "AdvRegPersonVerifikasjon",
                     EvidenceSource = Source,
                     BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
-                    Values = new List<EvidenceValue>()
+                    Values = new List<EvidenceValue>
                     {
                         new()
                         {
@@ -31,7 +31,12 @@ namespace Altinn.Dan.Plugin.Trad
                         },
                         new()
                         {
-                            EvidenceValueName = "ErRegistrert",
+                            EvidenceValueName = "Verifisert",
+                            ValueType = EvidenceValueType.Boolean
+                        },
+                        new()
+                        {
+                            EvidenceValueName = "ErTilknyttetVirksomhetMedRevisjonsPlikt",
                             ValueType = EvidenceValueType.Boolean
                         },
                         new()
@@ -39,14 +44,23 @@ namespace Altinn.Dan.Plugin.Trad
                             EvidenceValueName = "Tittel",
                             ValueType = EvidenceValueType.String
                         }
+                    },
+                    Parameters = new List<EvidenceParameter>
+                    {
+                        new()
+                        {
+                            EvidenceParamName = "InkluderPersonerUtenTilknytningTilVirksomhetMedRevisjonsPlikt",
+                            ParamType = EvidenceParamType.Boolean,
+                            Required = false
+                        }
                     }
                 },
                 new()
                 {
-                    EvidenceCodeName = "HentAdvokatRegisterPerson",
+                    EvidenceCodeName = "AdvRegPerson",
                     EvidenceSource = Source,
                     BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
-                    Values = new List<EvidenceValue>()
+                    Values = new List<EvidenceValue>
                     {
                         new()
                         {
@@ -55,11 +69,11 @@ namespace Altinn.Dan.Plugin.Trad
                             JsonSchemaDefintion = JsonSchema.FromType<Person>().ToJson(Formatting.None),
                         }
                     },
-                    AuthorizationRequirements = new List<Requirement>()
+                    AuthorizationRequirements = new List<Requirement>
                     {
-                        new MaskinportenScopeRequirement()
+                        new MaskinportenScopeRequirement
                         {
-                            RequiredScopes = new List<string>() { "altinn:dataaltinnno/advokatreg-person" }
+                            RequiredScopes = new List<string> { "altinn:dataaltinnno/advokatreg-person" }
                         }
                     }
                 }

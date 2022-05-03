@@ -87,12 +87,14 @@ namespace Altinn.Dan.Plugin.Trad.Test
                     ""firstName"": ""a"",
                     ""lastName"": ""b"",
                     ""title"": ""advokat"",
+                    ""isAssociatedWithAuditedBusiness"": true,
                     ""authorizedRepresentatives"": [
                         {
                             ""ssn"": ""200"",
                             ""firstName"": ""x"",
                             ""lastName"": ""y"",
                             ""title"": ""advokatfullmektig"",
+                            ""isAssociatedWithAuditedBusiness"": true,
                             ""authorizedRepresentatives"": null
                         }
                     ]
@@ -102,12 +104,14 @@ namespace Altinn.Dan.Plugin.Trad.Test
                     ""firstName"": ""a"",
                     ""lastName"": ""b"",
                     ""title"": ""advokat"",
+                    ""isAssociatedWithAuditedBusiness"": false,
                     ""authorizedRepresentatives"": [
                         {
                             ""ssn"": ""200"",
                             ""firstName"": ""x"",
                             ""lastName"": ""y"",
                             ""title"": ""advokatfullmektig"",
+                            ""isAssociatedWithAuditedBusiness"": true,
                             ""authorizedRepresentatives"": null
                         },
                         {
@@ -115,6 +119,7 @@ namespace Altinn.Dan.Plugin.Trad.Test
                             ""firstName"": ""x"",
                             ""lastName"": ""y"",
                             ""title"": ""advokatfullmektig"",
+                            ""isAssociatedWithAuditedBusiness"": false,
                             ""authorizedRepresentatives"": null
                         }
                     ]

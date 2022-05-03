@@ -47,7 +47,7 @@ namespace Altinn.Dan.Plugin.Trad
                 _logger.LogInformation($"Registry import was not run on schedule");
             }
 
-            List<Person> registry;
+            List<PersonInternal> registry;
             using (var _ = _logger.Timer("es-trad-fetch-people"))
             {
                 _logger.LogDebug($"Attempting fetch from {_settings.RegistryURL}");
@@ -65,7 +65,7 @@ namespace Altinn.Dan.Plugin.Trad
             _logger.LogInformation($"Import completed, now has {registry.Count} root entries. Next scheduled import at: {myTimer.ScheduleStatus.Next}");
         }
 
-        private async Task<List<Person>> GetPeople()
+        private async Task<List<PersonInternal>> GetPeople()
         {
             HttpResponseMessage result;
             try
@@ -87,7 +87,7 @@ namespace Altinn.Dan.Plugin.Trad
 
             try
             {
-                var response = JsonConvert.DeserializeObject<List<Person>>(await result.Content.ReadAsStringAsync());
+                var response = JsonConvert.DeserializeObject<List<PersonInternal>>(await result.Content.ReadAsStringAsync());
                 return response;
             }
             catch (Exception e) {
@@ -97,14 +97,14 @@ namespace Altinn.Dan.Plugin.Trad
             }
         }
 
-        private async Task UpdateCache(List<Person> registry)
+        private async Task UpdateCache(List<PersonInternal> registry)
         {
-            var seenPersons = new Dictionary<string, Person>();
+            var seenPersons = new Dictionary<string, PersonInternal>();
 
             _logger.LogInformation("Starting updating principals ...");
             var principalCount = 0;
 
-            foreach (Person person in registry)
+            foreach (PersonInternal person in registry)
             {
                 if (person.Ssn == null)
                 {
@@ -138,10 +138,10 @@ namespace Altinn.Dan.Plugin.Trad
 
                     if (!seenPersons.ContainsKey(associate.Ssn))
                     {
-                        seenPersons[associate.Ssn] = associate with { IsaAuthorizedRepresentativeFor = new List<Person>() };
+                        seenPersons[associate.Ssn] = associate with { IsaAuthorizedRepresentativeFor = new List<PersonInternal>() };
                     }
 
-                    seenPersons[associate.Ssn].IsaAuthorizedRepresentativeFor ??= new List<Person>();
+                    seenPersons[associate.Ssn].IsaAuthorizedRepresentativeFor ??= new List<PersonInternal>();
                     seenPersons[associate.Ssn].IsaAuthorizedRepresentativeFor.Add(person with { AuthorizedRepresentatives = null });
                 }
             }
@@ -153,7 +153,7 @@ namespace Altinn.Dan.Plugin.Trad
             _logger.LogInformation("Completed writing persons");
         }
 
-        private async Task UpdateCacheEntries(Dictionary<string, Person> persons)
+        private async Task UpdateCacheEntries(Dictionary<string, PersonInternal> persons)
         {
             // Number of concurrent tasks. 30 seems to do fine with current production workload.
             var throttler = new SemaphoreSlim(30);
@@ -174,10 +174,10 @@ namespace Altinn.Dan.Plugin.Trad
             await Task.WhenAll(tasks);
         }
 
-        private async Task UpdateCacheEntry(Person person)
+        private async Task UpdateCacheEntry(PersonInternal personInternal)
         {
-            var key = Helpers.GetCacheKeyForSsn(person.Ssn);
-            var entry = JsonConvert.SerializeObject(person);
+            var key = Helpers.GetCacheKeyForSsn(personInternal.Ssn);
+            var entry = JsonConvert.SerializeObject(personInternal);
 
             await _cache.SetAsync(key, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
             {

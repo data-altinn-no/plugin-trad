@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,7 +28,7 @@ namespace Altinn.Dan.Plugin.Trad
             _cache = cache;
         }
 
-        [Function("VerifiserAdvokat")]
+        [Function("AdvRegPersonVerifikasjon")]
         public async Task<HttpResponseData> RunAsyncVerifiserAdvokat([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, FunctionContext context)
         {
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
@@ -41,7 +42,7 @@ namespace Altinn.Dan.Plugin.Trad
             return response;
         }
 
-        [Function("HentAdvokatRegisterPerson")]
+        [Function("AdvRegPerson")]
         public async Task<HttpResponseData> RunAsyncHentPerson([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, FunctionContext context)
         {
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
@@ -70,31 +71,46 @@ namespace Altinn.Dan.Plugin.Trad
         {
             var res = await _cache.GetAsync(Helpers.GetCacheKeyForSsn(evidenceHarvesterRequest.SubjectParty.NorwegianSocialSecurityNumber));
 
-            var ecb = new EvidenceBuilder(_metadata, "VerifiserAdvokat");
+            var ecb = new EvidenceBuilder(_metadata, "AdvRegPersonVerifikasjon");
             ecb.AddEvidenceValue("Fodselsnummer", evidenceHarvesterRequest.SubjectParty.NorwegianSocialSecurityNumber, EvidenceSourceMetadata.Source);
             if (res != null)
             {
-                var person = JsonConvert.DeserializeObject<Person>(Encoding.UTF8.GetString(res));
+                var person = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
 
-                ecb.AddEvidenceValue("ErRegistrert", true, EvidenceSourceMetadata.Source);
-                ecb.AddEvidenceValue("Tittel", person.Title, EvidenceSourceMetadata.Source);
-            }
-            else
-            {
-                ecb.AddEvidenceValue("ErRegistrert", false, EvidenceSourceMetadata.Source);
+                var includePersonsWithoutAuditedBusinessRelation =
+                    evidenceHarvesterRequest.Parameters != null &&
+                    evidenceHarvesterRequest.Parameters.Any() &&
+                    (bool)evidenceHarvesterRequest.Parameters.First().Value;
+
+                if ((person.IsAssociatedWithAuditedBusiness ?? true) || includePersonsWithoutAuditedBusinessRelation)
+                {
+                    ecb.AddEvidenceValue("Verifisert", true, EvidenceSourceMetadata.Source);
+                    ecb.AddEvidenceValue("ErTilknyttetVirksomhetMedRevisjonsPlikt", person.IsAssociatedWithAuditedBusiness ?? true);
+                    ecb.AddEvidenceValue("Tittel", person.Title, EvidenceSourceMetadata.Source);
+                    return ecb.GetEvidenceValues();
+                }
+
             }
 
+            ecb.AddEvidenceValue("Verifisert", false, EvidenceSourceMetadata.Source);
             return ecb.GetEvidenceValues();
         }
 
         private async Task<List<EvidenceValue>> GetEvidenceValuesHentAdvokatRegisterPerson(EvidenceHarvesterRequest evidenceHarvesterRequest)
         {
+            var ecb = new EvidenceBuilder(_metadata, "AdvRegPerson");
+
             var res = await _cache.GetAsync(Helpers.GetCacheKeyForSsn(evidenceHarvesterRequest.SubjectParty.NorwegianSocialSecurityNumber));
-
-            var ecb = new EvidenceBuilder(_metadata, "HentAdvokatRegisterPerson");
-
-            ecb.AddEvidenceValue("default", res != null ? Encoding.UTF8.GetString(res) : "{}",
-                EvidenceSourceMetadata.Source);
+            if (res != null)
+            {
+                var personInternal = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
+                var person = Helpers.MapInternalModelToExternal(personInternal);
+                ecb.AddEvidenceValue("default", JsonConvert.SerializeObject(person), EvidenceSourceMetadata.Source);
+            }
+            else
+            {
+                ecb.AddEvidenceValue("default", "{}", EvidenceSourceMetadata.Source);
+            }
 
             return ecb.GetEvidenceValues();
         }
