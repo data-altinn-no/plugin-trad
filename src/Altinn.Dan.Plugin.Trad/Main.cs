@@ -76,20 +76,17 @@ namespace Altinn.Dan.Plugin.Trad
             if (res != null)
             {
                 var person = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
+                evidenceHarvesterRequest.TryGetParameter(
+                    "InkluderPersonerUtenTilknytningTilVirksomhetMedRevisjonsplikt",
+                    out bool includePersonsWithoutAuditedBusinessRelation);
 
-                var includePersonsWithoutAuditedBusinessRelation =
-                    evidenceHarvesterRequest.Parameters != null &&
-                    evidenceHarvesterRequest.Parameters.Any() &&
-                    (bool)evidenceHarvesterRequest.Parameters.First().Value;
-
-                if ((person.IsAssociatedWithAuditedBusiness ?? true) || includePersonsWithoutAuditedBusinessRelation)
+                if (includePersonsWithoutAuditedBusinessRelation || person.IsAssociatedWithAuditedBusiness)
                 {
                     ecb.AddEvidenceValue("Verifisert", true, EvidenceSourceMetadata.Source);
-                    ecb.AddEvidenceValue("ErTilknyttetVirksomhetMedRevisjonsPlikt", person.IsAssociatedWithAuditedBusiness ?? true);
+                    ecb.AddEvidenceValue("ErTilknyttetVirksomhetMedRevisjonsPlikt", person.IsAssociatedWithAuditedBusiness);
                     ecb.AddEvidenceValue("Tittel", person.Title, EvidenceSourceMetadata.Source);
                     return ecb.GetEvidenceValues();
                 }
-
             }
 
             ecb.AddEvidenceValue("Verifisert", false, EvidenceSourceMetadata.Source);

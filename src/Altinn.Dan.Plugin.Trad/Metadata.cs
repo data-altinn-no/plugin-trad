@@ -49,7 +49,7 @@ namespace Altinn.Dan.Plugin.Trad
                     {
                         new()
                         {
-                            EvidenceParamName = "InkluderPersonerUtenTilknytningTilVirksomhetMedRevisjonsPlikt",
+                            EvidenceParamName = "InkluderPersonerUtenTilknytningTilVirksomhetMedRevisjonsplikt",
                             ParamType = EvidenceParamType.Boolean,
                             Required = false
                         }

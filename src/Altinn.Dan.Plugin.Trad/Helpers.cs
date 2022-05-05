@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using Altinn.Dan.Plugin.Trad.Models;
+using Nadobe.Common.Models;
 
 namespace Altinn.Dan.Plugin.Trad
 {
@@ -22,7 +24,7 @@ namespace Altinn.Dan.Plugin.Trad
             {
                 Ssn = personInternal.Ssn,
                 Title = personInternal.Title,
-                IsAssociatedWithAuditedBusiness = personInternal.IsAssociatedWithAuditedBusiness ?? true,
+                IsAssociatedWithAuditedBusiness = personInternal.IsAssociatedWithAuditedBusiness,
             };
 
             if (personInternal.AuthorizedRepresentatives != null)
