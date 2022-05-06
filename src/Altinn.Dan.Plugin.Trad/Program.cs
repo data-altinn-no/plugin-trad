@@ -60,6 +60,7 @@ namespace Altinn.Dan.Plugin.Trad
                         options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                         options.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
                         options.Converters.Add(new JsonStringEnumConverter());
+                        options.Converters.Add(new AuthorizationRequirementJsonConverter());
                     });
                 })
                 .Build();
