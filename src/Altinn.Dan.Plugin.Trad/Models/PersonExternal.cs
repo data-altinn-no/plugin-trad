@@ -12,12 +12,9 @@ namespace Altinn.Dan.Plugin.Trad.Models
         public TitleType Title { get; set; }
 
         [JsonProperty("erTilknyttetVirksomhetMedRevisjonsplikt", NullValueHandling = NullValueHandling.Ignore)]
-        public bool IsAssociatedWithAuditedBusiness;
+        public bool? IsAssociatedWithAuditedBusiness;
 
-        [JsonProperty("autoriserteRepresentanter", NullValueHandling = NullValueHandling.Ignore)]
-        public List<PersonExternal> AuthorizedRepresentatives { get; set; }
-
-        [JsonProperty("erAutorisertRepresentantFor", NullValueHandling = NullValueHandling.Ignore)]
-        public List<PersonExternal> IsaAuthorizedRepresentativeFor { get; set; }
+        [JsonProperty("tilknyttedePraksiser", NullValueHandling = NullValueHandling.Ignore)]
+        public List<PracticeExternal> Practices { get; set; }
     }
 }

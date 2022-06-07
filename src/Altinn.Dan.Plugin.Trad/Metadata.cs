@@ -26,22 +26,22 @@ namespace Altinn.Dan.Plugin.Trad
                     {
                         new()
                         {
-                            EvidenceValueName = "Fodselsnummer",
+                            EvidenceValueName = "fodselsnummer",
                             ValueType = EvidenceValueType.String
                         },
                         new()
                         {
-                            EvidenceValueName = "Verifisert",
+                            EvidenceValueName = "verifisert",
                             ValueType = EvidenceValueType.Boolean
                         },
                         new()
                         {
-                            EvidenceValueName = "ErTilknyttetVirksomhetMedRevisjonsPlikt",
+                            EvidenceValueName = "erTilknyttetVirksomhetMedRevisjonsPlikt",
                             ValueType = EvidenceValueType.Boolean
                         },
                         new()
                         {
-                            EvidenceValueName = "Tittel",
+                            EvidenceValueName = "tittel",
                             ValueType = EvidenceValueType.String
                         }
                     },
@@ -49,9 +49,16 @@ namespace Altinn.Dan.Plugin.Trad
                     {
                         new()
                         {
-                            EvidenceParamName = "InkluderPersonerUtenTilknytningTilVirksomhetMedRevisjonsplikt",
+                            EvidenceParamName = "inkluderPersonerUtenTilknytningTilVirksomhetMedRevisjonsplikt",
                             ParamType = EvidenceParamType.Boolean,
                             Required = false
+                        }
+                    },
+                    AuthorizationRequirements = new List<Requirement>
+                    {
+                        new MaskinportenScopeRequirement
+                        {
+                            RequiredScopes = new List<string> { "altinn:dataaltinnno/advregverifikasjon" }
                         }
                     }
                 },
@@ -73,7 +80,7 @@ namespace Altinn.Dan.Plugin.Trad
                     {
                         new MaskinportenScopeRequirement
                         {
-                            RequiredScopes = new List<string> { "altinn:dataaltinnno/advokatreg-person" }
+                            RequiredScopes = new List<string> { "altinn:dataaltinnno/advregperson" }
                         }
                     }
                 }

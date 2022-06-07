@@ -72,24 +72,26 @@ namespace Altinn.Dan.Plugin.Trad
             var res = await _cache.GetAsync(Helpers.GetCacheKeyForSsn(evidenceHarvesterRequest.SubjectParty.NorwegianSocialSecurityNumber));
 
             var ecb = new EvidenceBuilder(_metadata, "AdvRegPersonVerifikasjon");
-            ecb.AddEvidenceValue("Fodselsnummer", evidenceHarvesterRequest.SubjectParty.NorwegianSocialSecurityNumber, EvidenceSourceMetadata.Source);
+            ecb.AddEvidenceValue("fodselsnummer", evidenceHarvesterRequest.SubjectParty.NorwegianSocialSecurityNumber, EvidenceSourceMetadata.Source);
             if (res != null)
             {
                 var person = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
                 evidenceHarvesterRequest.TryGetParameter(
-                    "InkluderPersonerUtenTilknytningTilVirksomhetMedRevisjonsplikt",
+                    "inkluderPersonerUtenTilknytningTilVirksomhetMedRevisjonsplikt",
                     out bool includePersonsWithoutAuditedBusinessRelation);
 
-                if (includePersonsWithoutAuditedBusinessRelation || person.IsAssociatedWithAuditedBusiness)
+                var isAssociatedWithAuditedBusiness = person.Practices.Any(x => !x.AuditExcempt);
+
+                if (includePersonsWithoutAuditedBusinessRelation || isAssociatedWithAuditedBusiness)
                 {
-                    ecb.AddEvidenceValue("Verifisert", true, EvidenceSourceMetadata.Source);
-                    ecb.AddEvidenceValue("ErTilknyttetVirksomhetMedRevisjonsPlikt", person.IsAssociatedWithAuditedBusiness);
-                    ecb.AddEvidenceValue("Tittel", person.Title, EvidenceSourceMetadata.Source);
+                    ecb.AddEvidenceValue("verifisert", true, EvidenceSourceMetadata.Source);
+                    ecb.AddEvidenceValue("erTilknyttetVirksomhetMedRevisjonsPlikt", isAssociatedWithAuditedBusiness);
+                    ecb.AddEvidenceValue("tittel", person.Title, EvidenceSourceMetadata.Source);
                     return ecb.GetEvidenceValues();
                 }
             }
 
-            ecb.AddEvidenceValue("Verifisert", false, EvidenceSourceMetadata.Source);
+            ecb.AddEvidenceValue("verifisert", false, EvidenceSourceMetadata.Source);
             return ecb.GetEvidenceValues();
         }
 

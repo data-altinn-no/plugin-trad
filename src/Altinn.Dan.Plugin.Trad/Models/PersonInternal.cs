@@ -11,13 +11,7 @@ namespace Altinn.Dan.Plugin.Trad.Models
         [JsonProperty("title")]
         public TitleType Title { get; set; }
 
-        [JsonProperty("isAssociatedWithAuditedBusiness")]
-        public bool IsAssociatedWithAuditedBusiness;
-
-        [JsonProperty("authorizedRepresentatives", NullValueHandling = NullValueHandling.Ignore)]
-        public List<PersonInternal> AuthorizedRepresentatives { get; set; }
-
-        [JsonProperty("isAuthorizedRepresentativeFor", NullValueHandling = NullValueHandling.Ignore)]
-        public List<PersonInternal> IsaAuthorizedRepresentativeFor { get; set; }
+        [JsonProperty("practices", NullValueHandling = NullValueHandling.Ignore)]
+        public List<PracticeInternal> Practices { get; set; }
     }
 }

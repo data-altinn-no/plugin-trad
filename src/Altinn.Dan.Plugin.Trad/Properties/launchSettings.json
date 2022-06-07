@@ -2,7 +2,7 @@
   "profiles": {
     "Altinn.Dan.Plugin.Trad": {
       "commandName": "Project",
-      "commandLineArgs": "host start --pause-on-error --port 7099 --nodeDebugPort 5859 "
+      "commandLineArgs": "host start --pause-on-error --port 7075 --nodeDebugPort 5859 "
     }
   }
 }
