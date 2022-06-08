@@ -23,7 +23,7 @@ namespace Altinn.Dan.Plugin.Trad
 
         public static bool ShouldRunUpdate(DateTime? timeToCheck = null)
         {
-            var norwegianTime = timeToCheck ?? TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "Europe/Oslo");
+            var norwegianTime = timeToCheck ?? TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "W. Europe Standard Time");
 
 
             // Always update between 0600 and 1759
