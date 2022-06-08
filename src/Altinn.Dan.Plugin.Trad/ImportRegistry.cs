@@ -35,7 +35,6 @@ namespace Altinn.Dan.Plugin.Trad
             _cache = cache;
         }
 
-#if !DEBUG
         [Function("ImportRegistry")]
         public async Task RunAsync([TimerTrigger("0 */5 * * * *")] MyInfo myTimer)
         {
@@ -58,11 +57,9 @@ namespace Altinn.Dan.Plugin.Trad
 
         }
 
-
-#else
         // This function is only used for local debugging, and expects to find a dump of advreg on disk
-        [Function("Refresh")]
-        public async Task<HttpResponseData> Refresh([HttpTrigger(AuthorizationLevel.Anonymous)] HttpRequestData req, FunctionContext context)
+        [Function("DebugRefresh")]
+        public async Task<HttpResponseData> DebugRefresh([HttpTrigger(AuthorizationLevel.Function)] HttpRequestData req, FunctionContext context)
         {
             List<PersonInternal> debugRegistry;
             using (StreamReader file = File.OpenText(@"c:\repos\dan-plugin-trad\advreg.json"))
@@ -71,7 +68,7 @@ namespace Altinn.Dan.Plugin.Trad
                 debugRegistry = (List<PersonInternal>)serializer.Deserialize(file, typeof(List<PersonInternal>));
             }
 
-            if (debugRegistry == null) return req.CreateResponse(HttpStatusCode.InternalServerError)
+            if (debugRegistry == null) return req.CreateResponse(HttpStatusCode.InternalServerError);
 
             using (var _ = _logger.Timer("es-trad-update-cache"))
             {
@@ -82,7 +79,6 @@ namespace Altinn.Dan.Plugin.Trad
 
             return req.CreateResponse(HttpStatusCode.OK);
         }
-#endif
 
         public async Task PerformUpdate()
         {
