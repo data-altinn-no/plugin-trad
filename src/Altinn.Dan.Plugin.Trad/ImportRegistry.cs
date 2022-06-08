@@ -180,11 +180,6 @@ namespace Altinn.Dan.Plugin.Trad
                     seenPersons[person.Ssn] = person with { };
                 }
 
-                if (person.Ssn == "19047434125")
-                {
-                    _logger.LogWarning("xx");
-                }
-
                 principalCount++;
 
                 foreach (var practice in person.Practices)
