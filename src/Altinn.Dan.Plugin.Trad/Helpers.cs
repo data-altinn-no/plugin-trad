@@ -67,7 +67,7 @@ namespace Altinn.Dan.Plugin.Trad
             var person = new PersonExternal
             {
                 Ssn = personInternal.Ssn,
-                Title = personInternal.Title,
+                Title = (TitleTypeExternal)personInternal.Title,
             };
 
             if (descendIntoPractices)

@@ -5,8 +5,8 @@ using Newtonsoft.Json.Converters;
 
 namespace Altinn.Dan.Plugin.Trad.Models
 {
-    [JsonConverter(typeof(TitleTypeStringEnumConverter))]
-    public enum TitleType
+    [JsonConverter(typeof(TitleTypeInternalStringEnumConverter))]
+    public enum TitleTypeInternal
     {
         [EnumMember] 
         Ukjent,
@@ -27,14 +27,14 @@ namespace Altinn.Dan.Plugin.Trad.Models
         UtenlandskAdvokat
     }
 
-    public class TitleTypeStringEnumConverter : StringEnumConverter
+    public class TitleTypeInternalStringEnumConverter : StringEnumConverter
     {
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             if (reader.Value == null || string.IsNullOrEmpty(reader.Value.ToString()) ||
-                !Enum.TryParse<TitleType>(reader.Value.ToString(), true, out _))
+                !Enum.TryParse<TitleTypeInternal>(reader.Value.ToString(), true, out _))
             {
-                return TitleType.Ukjent;
+                return TitleTypeInternal.Ukjent;
             }
 
             return base.ReadJson(reader, objectType, existingValue, serializer);

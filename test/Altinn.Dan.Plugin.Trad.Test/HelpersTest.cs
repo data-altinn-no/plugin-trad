@@ -38,7 +38,7 @@ namespace Altinn.Dan.Plugin.Trad.Test
 
         private DateTime GetNorwayTime(int hour, int minute = 0)
         {
-            var zn = TimeZoneInfo.FindSystemTimeZoneById("Europe/Oslo");
+            var zn = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
             DateTimeOffset dateTimeOffset = new DateTimeOffset(new DateTime(2022, 1, 1, hour, minute, 0, DateTimeKind.Unspecified), zn.BaseUtcOffset);
 
             return dateTimeOffset.DateTime;

@@ -9,7 +9,7 @@ namespace Altinn.Dan.Plugin.Trad.Models
         public string Ssn { get; set; }
         
         [JsonProperty("title")]
-        public TitleType Title { get; set; }
+        public TitleTypeInternal Title { get; set; }
 
         [JsonProperty("practices", NullValueHandling = NullValueHandling.Ignore)]
         public List<PracticeInternal> Practices { get; set; }

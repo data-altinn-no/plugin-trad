@@ -36,7 +36,11 @@ namespace Altinn.Dan.Plugin.Trad
         }
 
         [Function("ImportRegistry")]
-        public async Task RunAsync([TimerTrigger("0 */5 * * * *")] MyInfo myTimer)
+        public async Task RunAsync([TimerTrigger("0 */5 * * * *"
+#if DEBUG
+, RunOnStartup = true
+#endif
+        )] MyInfo myTimer)
         {
             _logger.LogInformation($"Registry Import executed at: {DateTime.Now}");
 
@@ -56,6 +60,7 @@ namespace Altinn.Dan.Plugin.Trad
             _logger.LogInformation($"Import completed. Next scheduled import attempt at: {myTimer.ScheduleStatus.Next}");
 
         }
+
 
         // This function is only used for local debugging, and expects to find a dump of advreg on disk
         [Function("DebugRefresh")]
@@ -292,7 +297,7 @@ namespace Altinn.Dan.Plugin.Trad
 
             await _cache.SetAsync(key, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(300)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
             });
         }
     }

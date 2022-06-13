@@ -9,7 +9,7 @@ namespace Altinn.Dan.Plugin.Trad.Models
         public string Ssn { get; set; }
         
         [JsonProperty("tittel")]
-        public TitleType Title { get; set; }
+        public TitleTypeExternal Title { get; set; }
 
         [JsonProperty("erTilknyttetVirksomhetMedRevisjonsplikt", NullValueHandling = NullValueHandling.Ignore)]
         public bool? IsAssociatedWithAuditedBusiness;
