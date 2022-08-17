@@ -12,9 +12,6 @@ namespace Altinn.Dan.Plugin.Trad.Models
         [JsonProperty("organisasjonsNummer")]
         public int OrganizationNumber { get; set; }
 
-        [JsonProperty("harRevisjonsPlikt")]
-        public bool Auditable { get; set; }
-
         [JsonProperty("autoriserteRepresentanter", NullValueHandling = NullValueHandling.Ignore)]
         public List<PersonExternal> AuthorizedRepresentatives { get; set; }
 

@@ -36,22 +36,8 @@ namespace Altinn.Dan.Plugin.Trad
                         },
                         new()
                         {
-                            EvidenceValueName = "erTilknyttetVirksomhetMedRevisjonsPlikt",
-                            ValueType = EvidenceValueType.Boolean
-                        },
-                        new()
-                        {
                             EvidenceValueName = "tittel",
                             ValueType = EvidenceValueType.String
-                        }
-                    },
-                    Parameters = new List<EvidenceParameter>
-                    {
-                        new()
-                        {
-                            EvidenceParamName = "inkluderPersonerUtenTilknytningTilVirksomhetMedRevisjonsplikt",
-                            ParamType = EvidenceParamType.Boolean,
-                            Required = false
                         }
                     },
                     AuthorizationRequirements = new List<Requirement>

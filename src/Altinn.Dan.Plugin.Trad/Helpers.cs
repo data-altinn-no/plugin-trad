@@ -94,7 +94,6 @@ namespace Altinn.Dan.Plugin.Trad
             return new PracticeExternal
             {
                 OrganizationNumber = practiceInternal.OrganizationNumber,
-                Auditable = !practiceInternal.AuditExcempt,
                 AuthorizedRepresentatives =
                     MapInternalPersonListToExternal(practiceInternal.AuthorizedRepresentatives, false),
                 IsaAuthorizedRepresentativeFor =

@@ -11,9 +11,6 @@ namespace Altinn.Dan.Plugin.Trad.Models
         [JsonProperty("tittel")]
         public TitleTypeExternal Title { get; set; }
 
-        [JsonProperty("erTilknyttetVirksomhetMedRevisjonsplikt", NullValueHandling = NullValueHandling.Ignore)]
-        public bool? IsAssociatedWithAuditedBusiness;
-
         [JsonProperty("tilknyttedePraksiser", NullValueHandling = NullValueHandling.Ignore)]
         public List<PracticeExternal> Practices { get; set; }
     }

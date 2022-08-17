@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -76,19 +75,9 @@ namespace Altinn.Dan.Plugin.Trad
             if (res != null)
             {
                 var person = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
-                evidenceHarvesterRequest.TryGetParameter(
-                    "inkluderPersonerUtenTilknytningTilVirksomhetMedRevisjonsplikt",
-                    out bool includePersonsWithoutAuditedBusinessRelation);
-
-                var isAssociatedWithAuditedBusiness = person.Practices.Any(x => !x.AuditExcempt);
-
-                if (includePersonsWithoutAuditedBusinessRelation || isAssociatedWithAuditedBusiness)
-                {
-                    ecb.AddEvidenceValue("verifisert", true, EvidenceSourceMetadata.Source);
-                    ecb.AddEvidenceValue("erTilknyttetVirksomhetMedRevisjonsPlikt", isAssociatedWithAuditedBusiness);
-                    ecb.AddEvidenceValue("tittel", person.Title, EvidenceSourceMetadata.Source);
-                    return ecb.GetEvidenceValues();
-                }
+                ecb.AddEvidenceValue("verifisert", true, EvidenceSourceMetadata.Source);
+                ecb.AddEvidenceValue("tittel", person.Title, EvidenceSourceMetadata.Source);
+                return ecb.GetEvidenceValues();
             }
 
             ecb.AddEvidenceValue("verifisert", false, EvidenceSourceMetadata.Source);
