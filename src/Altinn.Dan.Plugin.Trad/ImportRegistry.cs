@@ -183,6 +183,7 @@ namespace Altinn.Dan.Plugin.Trad
 
                 principalCount++;
 
+                if (person.Practices == null) continue;
                 foreach (var practice in person.Practices)
                 {
                     if (practice.AuthorizedRepresentatives == null || practice.AuthorizedRepresentatives.Count == 0) continue;
