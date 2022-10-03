@@ -35,13 +35,13 @@ public class MockCache : IDistributedCache
 
     public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
     {
-        _backingStore[key] = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(value));
+        _backingStore[key] = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(value))!;
     }
 
     public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options,
         CancellationToken token = new())
     {
-        _backingStore[key] = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(value));
+        _backingStore[key] = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(value))!;
         await Task.CompletedTask;
     }
 
