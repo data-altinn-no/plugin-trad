@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Altinn.ApiClients.Maskinporten" Version="2.0.0" />
+    <PackageReference Include="Altinn.ApiClients.Maskinporten" Version="2.1.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.9.4" />
     <PackageReference Include="Moq" Version="4.16.1" />
     <PackageReference Include="MSTest.TestAdapter" Version="2.2.3" />
@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Altinn.Dan.Plugin.Trad\Altinn.Dan.Plugin.Trad.csproj" />
+    <ProjectReference Include="..\..\src\Altinn.Dan.Plugin.Trad\Dan.Plugin.Trad.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,95 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Net;
+using System.Text;
+using System.Threading.Tasks;
+using Altinn.Dan.Plugin.Trad;
+using Altinn.Dan.Plugin.Trad.Models;
+using Dan.Common;
+using Dan.Common.Interfaces;
+using Dan.Common.Models;
+using Dan.Common.Util;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Caching.Distributed;
+using Newtonsoft.Json;
+
+namespace Dan.Plugin.Trad;
+
+public class Main
+{
+    private readonly IEvidenceSourceMetadata _metadata;
+    private readonly IDistributedCache _cache;
+
+    public Main(IDistributedCache cache, IEvidenceSourceMetadata metadata)
+    {
+        _metadata = metadata;
+        _cache = cache;
+    }
+
+    [Function("AdvRegPersonVerifikasjon")]
+    public async Task<HttpResponseData> RunAsyncVerifiserAdvokat([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, FunctionContext context)
+    {
+        var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+        var evidenceHarvesterRequest = JsonConvert.DeserializeObject<EvidenceHarvesterRequest>(requestBody);
+        return await EvidenceSourceResponse.CreateResponse(req,
+            () => GetEvidenceValuesVerifiserAdvokat(evidenceHarvesterRequest));
+    }
+
+    [Function("AdvRegPerson")]
+    public async Task<HttpResponseData> RunAsyncHentPerson([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, FunctionContext context)
+    {
+        var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+        var evidenceHarvesterRequest = JsonConvert.DeserializeObject<EvidenceHarvesterRequest>(requestBody);
+        return await EvidenceSourceResponse.CreateResponse(req,
+            () => GetEvidenceValuesHentAdvokatRegisterPerson(evidenceHarvesterRequest));
+    }
+
+
+    [Function(Constants.EvidenceSourceMetadataFunctionName)]
+    public async Task<HttpResponseData> RunAsyncMetadata(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequestData req,
+        FunctionContext context)
+    {
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        await response.WriteAsJsonAsync(_metadata.GetEvidenceCodes());
+        return response;
+    }
+
+    private async Task<List<EvidenceValue>> GetEvidenceValuesVerifiserAdvokat(EvidenceHarvesterRequest evidenceHarvesterRequest)
+    {
+        var res = await _cache.GetAsync(Helpers.GetCacheKeyForSsn(evidenceHarvesterRequest.SubjectParty?.NorwegianSocialSecurityNumber));
+
+        var ecb = new EvidenceBuilder(_metadata, "AdvRegPersonVerifikasjon");
+        ecb.AddEvidenceValue("fodselsnummer", evidenceHarvesterRequest.SubjectParty?.NorwegianSocialSecurityNumber, EvidenceSourceMetadata.Source);
+        if (res != null)
+        {
+            var person = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
+            ecb.AddEvidenceValue("verifisert", true, EvidenceSourceMetadata.Source);
+            ecb.AddEvidenceValue("tittel", person?.Title, EvidenceSourceMetadata.Source);
+            return ecb.GetEvidenceValues();
+        }
+
+        ecb.AddEvidenceValue("verifisert", false, EvidenceSourceMetadata.Source);
+        return ecb.GetEvidenceValues();
+    }
+
+    private async Task<List<EvidenceValue>> GetEvidenceValuesHentAdvokatRegisterPerson(EvidenceHarvesterRequest evidenceHarvesterRequest)
+    {
+        var ecb = new EvidenceBuilder(_metadata, "AdvRegPerson");
+
+        var res = await _cache.GetAsync(Helpers.GetCacheKeyForSsn(evidenceHarvesterRequest.SubjectParty?.NorwegianSocialSecurityNumber));
+        if (res != null)
+        {
+            var personInternal = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
+            var person = Helpers.MapInternalModelToExternal(personInternal);
+            ecb.AddEvidenceValue("default", JsonConvert.SerializeObject(person), EvidenceSourceMetadata.Source);
+        }
+        else
+        {
+            ecb.AddEvidenceValue("default", "{}", EvidenceSourceMetadata.Source);
+        }
+
+        return ecb.GetEvidenceValues();
+    }
+}
