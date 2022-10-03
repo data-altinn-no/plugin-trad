@@ -10,12 +10,13 @@ on:
 
 jobs:
  run:
-   uses: data-altinn-no/dan-deploy-actions/.github/workflows/dan-deploy-flow.yml@main
+   uses: data-altinn-no/dan-deploy-actions/.github/workflows/dan-deploy-flow.yml@legacy
    with:
      artifact_name: 'dan-plugin-trad' # Can be omitted, defaults to 'artifact'
      function_project_path: 'src/Altinn.Dan.Plugin.Trad'
    secrets:
      function_app_name: ${{ secrets.FUNCTIONAPP_NAME }}
+     azure_artifact_pat: ${{ secrets.AZURE_ARTIFACTS_PAT }}
      publish_profile: ${{ secrets.AZURE_FUNCTION_PUBLISH_CREDS }}
      azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
      resource_group_prod: ${{ secrets.RESOURCE_GROUP_PROD }}
