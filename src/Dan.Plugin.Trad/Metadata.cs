@@ -3,7 +3,8 @@ using Altinn.Dan.Plugin.Trad.Models;
 using Dan.Common.Enums;
 using Dan.Common.Interfaces;
 using Dan.Common.Models;
-using Newtonsoft.Json.Schema.Generation;
+using Newtonsoft.Json;
+using NJsonSchema;
 
 namespace Dan.Plugin.Trad;
 
@@ -14,8 +15,6 @@ public class EvidenceSourceMetadata : IEvidenceSourceMetadata
 
     public List<EvidenceCode> GetEvidenceCodes()
     {
-        JSchemaGenerator generator = new JSchemaGenerator();
-
         return new List<EvidenceCode>
         {
             new()
@@ -60,7 +59,7 @@ public class EvidenceSourceMetadata : IEvidenceSourceMetadata
                     {
                         EvidenceValueName = "default",
                         ValueType = EvidenceValueType.JsonSchema,
-                        JsonSchemaDefintion = generator.Generate(typeof(PersonExternal)).ToString()
+                        JsonSchemaDefintion = JsonSchema.FromType<PersonExternal>().ToJson(Formatting.None)
                     }
                 },
                 AuthorizationRequirements = new List<Requirement>
