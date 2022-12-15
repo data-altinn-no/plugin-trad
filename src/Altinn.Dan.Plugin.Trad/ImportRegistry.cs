@@ -298,7 +298,7 @@ namespace Altinn.Dan.Plugin.Trad
 
             await _cache.SetAsync(key, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24)
             });
         }
     }
