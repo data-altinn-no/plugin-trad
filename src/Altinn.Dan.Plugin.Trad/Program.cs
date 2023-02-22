@@ -3,69 +3,31 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Polly;
-using Polly.Extensions.Http;
-using Polly.Registry;
-using System;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using Nadobe.Common.Interfaces;
-using Nadobe.Common.Util;
+using Dan.Common.Extensions;
+using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
-
-namespace Altinn.Dan.Plugin.Trad
-{
-    class Program
+var host = new HostBuilder()
+    .ConfigureDanPluginDefaults()
+    .ConfigureLogging(loggingConfiguration =>
     {
-        private static IApplicationSettings ApplicationSettings { get; set; }
+        loggingConfiguration.AddConsole();
+    })
+    .ConfigureServices((_, services) =>
+    {
+        services.AddOptions<ApplicationSettings>()
+            .Configure<IConfiguration>((settings, configuration) => configuration.Bind(settings));
 
-        // ReSharper disable once UnusedParameter.Local
-        private static Task Main(string[] args)
-        {           
-            var host = new HostBuilder()
-                .ConfigureFunctionsWorkerDefaults()
-                .ConfigureServices((_, services) =>
-                {
-                    services.AddLogging();
-                    services.AddHttpClient();
+        var applicationSettings = services.BuildServiceProvider().GetRequiredService<IOptions<ApplicationSettings>>().Value;
 
-                    services.AddSingleton<IEvidenceSourceMetadata, EvidenceSourceMetadata>();
+        services.AddStackExchangeRedisCache(option =>
+        {
+            option.Configuration = applicationSettings.RedisConnectionString;
+        });
 
-                    services.AddOptions<ApplicationSettings>()
-                        .Configure<IConfiguration>((settings, configuration) => configuration.Bind(settings));
+        services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(applicationSettings.RedisConnectionString));
 
-                    ApplicationSettings = services.BuildServiceProvider().GetRequiredService<IOptions<ApplicationSettings>>().Value;
+    })
+    .Build();
 
-                    services.AddStackExchangeRedisCache(option =>
-                    {
-                        option.Configuration = ApplicationSettings.RedisConnectionString;
-                    });
-
-                    var registry = new PolicyRegistry()
-                    {
-                        { "defaultCircuitBreaker", HttpPolicyExtensions.HandleTransientHttpError().CircuitBreakerAsync(
-                            ApplicationSettings.BreakerFailuresBeforeTripping, ApplicationSettings.BreakerOpenCircuitTime) }
-                    };
-                    services.AddPolicyRegistry(registry);
-
-                    // Client configured with circuit breaker policies
-                    services.AddHttpClient("SafeHttpClient", client => {
-                            client.Timeout = new TimeSpan(0, 0, 30);
-                        })
-                        .AddPolicyHandlerFromRegistry("defaultCircuitBreaker")
-                        ;
-
-                    services.Configure<JsonSerializerOptions>(options =>
-                    {
-                        options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-                        options.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-                        options.Converters.Add(new JsonStringEnumConverter());
-                        options.Converters.Add(new AuthorizationRequirementJsonConverter());
-                    });
-                })
-                .Build();
-            return host.RunAsync();
-        }
-    }
-}
+await host.RunAsync();

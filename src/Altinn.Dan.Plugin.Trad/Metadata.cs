@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using Altinn.Dan.Plugin.Trad.Models;
-using Nadobe.Common.Interfaces;
-using Nadobe.Common.Models;
-using Nadobe.Common.Models.Enums;
+using Dan.Common.Enums;
+using Dan.Common.Interfaces;
+using Dan.Common.Models;
 using Newtonsoft.Json;
 using NJsonSchema;
 
@@ -67,6 +67,27 @@ namespace Altinn.Dan.Plugin.Trad
                         new MaskinportenScopeRequirement
                         {
                             RequiredScopes = new List<string> { "altinn:dataaltinnno/advregperson" }
+                        }
+                    }
+                },
+                new()
+                {
+                    EvidenceCodeName = "AdvRegBulk.zip",
+                    EvidenceSource = Source,
+                    BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
+                    Values = new List<EvidenceValue>
+                    {
+                        new()
+                        {
+                            EvidenceValueName = "default",
+                            ValueType = EvidenceValueType.Binary
+                        }
+                    },
+                    AuthorizationRequirements = new List<Requirement>
+                    {
+                        new MaskinportenScopeRequirement
+                        {
+                            RequiredScopes = new List<string> { "altinn:dataaltinnno/advregbulk" }
                         }
                     }
                 }

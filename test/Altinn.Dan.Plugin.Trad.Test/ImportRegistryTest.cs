@@ -10,6 +10,7 @@ using Moq.Protected;
 using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.Extensions.Options;
+using StackExchange.Redis;
 
 namespace Altinn.Dan.Plugin.Trad.Test
 {
@@ -17,12 +18,18 @@ namespace Altinn.Dan.Plugin.Trad.Test
     public class ImportRegistryTest
     {
         private readonly Mock<IHttpClientFactory> _mockFactory = new();
+        private readonly Mock<IConnectionMultiplexer> _mockConnectionMultiplexer = new();
+        private readonly Mock<IDatabase> _mockDatabase = new();
         private readonly ILoggerFactory _loggerFactory = new LoggerFactory();
 
         [TestInitialize]
         public void Initialize()
         {
             _mockFactory.Setup(_ => _.CreateClient(It.IsAny<string>())).Returns(MakeFakeClient());
+            _mockDatabase.Setup(_ => _.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(),
+                It.IsAny<TimeSpan?>(), It.IsAny<bool>(), It.IsAny<When>(), It.IsAny<CommandFlags>()));
+            _mockConnectionMultiplexer.Setup(_ => _.GetDatabase(It.IsAny<int>(), It.IsAny<object?>()))
+                .Returns(_mockDatabase.Object);
         }
 
         [TestMethod]
@@ -32,7 +39,7 @@ namespace Altinn.Dan.Plugin.Trad.Test
             // Setup 
             var mockCache = new MockCache();
             var options = Options.Create(new ApplicationSettings() { RegistryURL = "http://some_url.blahblah.nope", ApiKey = "secretapikey"});
-            var func = new ImportRegistry(_loggerFactory, _mockFactory.Object, options, mockCache);
+            var func = new ImportRegistry(_loggerFactory, _mockFactory.Object, options, mockCache, _mockConnectionMultiplexer.Object);
 
             // Act
             await func.PerformUpdate();
