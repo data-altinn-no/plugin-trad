@@ -5,6 +5,9 @@ namespace Altinn.Dan.Plugin.Trad.Models
 {
     public record PersonInternal
     {
+        [JsonProperty("regnr", NullValueHandling = NullValueHandling.Ignore)]
+        public string RegistrationNumber { get; set; }
+
         [JsonProperty("ssn")]
         public string Ssn { get; set; }
         
