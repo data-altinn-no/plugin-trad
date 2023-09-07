@@ -10,7 +10,7 @@ on:
 
 jobs:
  run:
-   uses: data-altinn-no/dan-deploy-actions/.github/workflows/dan-deploy-flow.yml@legacy
+   uses: data-altinn-no/dan-deploy-actions/.github/workflows/dan-deploy-flow.yml@main
    with:
      artifact_name: 'dan-plugin-trad' # Can be omitted, defaults to 'artifact'
      function_project_path: 'src/Altinn.Dan.Plugin.Trad'
