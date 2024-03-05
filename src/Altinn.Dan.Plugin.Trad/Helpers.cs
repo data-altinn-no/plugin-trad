@@ -156,6 +156,6 @@ public class StopwatchLog : IDisposable
     {
         Stopwatch.Stop();
         var elapsedMilliseconds = Stopwatch.ElapsedMilliseconds;
-        Logger?.LogInformation("[NadobeTimer] {logtext} elapsedMs={elapsedMs}", Logtext, elapsedMilliseconds);
+        Logger?.LogInformation("[DANTimer] {logtext} elapsedMs={elapsedMs}", Logtext, elapsedMilliseconds);
     }
 }
