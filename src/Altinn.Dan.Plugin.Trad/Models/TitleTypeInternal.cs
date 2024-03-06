@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -34,11 +35,17 @@ namespace Altinn.Dan.Plugin.Trad.Models
             if (reader.Value == null || string.IsNullOrEmpty(reader.Value.ToString()) ||
                 !Enum.TryParse<TitleTypeInternal>(reader.Value.ToString(), true, out _))
             {
-                switch (reader.Value.ToString())
+                var valueString = reader.Value.ToString();
+
+                if (string.IsNullOrEmpty(valueString))
+                    return TitleTypeInternal.Ukjent;
+
+                switch (valueString)
                 {
                     case "Rettshjelper nr1": return TitleTypeInternal.Rettshjelper;
                     case "EØS-Advokat": return TitleTypeInternal.EosAdvokat;
                     case "Utenlandsk advokat": return TitleTypeInternal.UtenlandskAdvokat;
+                    case var _ when valueString.Contains('-'): return TitleTypeInternal.EosAdvokat;
                     default: return TitleTypeInternal.Ukjent;
                 }
             }
