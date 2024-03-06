@@ -20,10 +20,10 @@ namespace Altinn.Dan.Plugin.Trad.Models
         [EnumMember]
         Rettshjelper,
 
-        [EnumMember(Value="EØS-Advokat")]
+        [EnumMember]
         EosAdvokat,
 
-        [EnumMember(Value="Utenlandsk advokat")]
+        [EnumMember]
         UtenlandskAdvokat
     }
 
