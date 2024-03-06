@@ -17,7 +17,7 @@ namespace Altinn.Dan.Plugin.Trad.Models
         [EnumMember]
         Advokatfullmektig,
 
-        [EnumMember(Value="Rettshjelper nr1")]
+        [EnumMember]
         Rettshjelper,
 
         [EnumMember(Value="EØS-Advokat")]
