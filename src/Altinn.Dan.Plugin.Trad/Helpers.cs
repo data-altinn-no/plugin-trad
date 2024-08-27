@@ -100,6 +100,7 @@ public static class Helpers
                 MapInternalPersonListToExternal(practiceInternal.AuthorizedRepresentatives, false),
             IsaAuthorizedRepresentativeFor =
                 MapInternalPersonListToExternal(practiceInternal.IsAnAuthorizedRepresentativeFor, false),
+            SubOrganizationNumber = practiceInternal.SubOrganizationNumber,
         };
     }
 }

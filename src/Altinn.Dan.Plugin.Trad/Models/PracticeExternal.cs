@@ -12,6 +12,9 @@ namespace Altinn.Dan.Plugin.Trad.Models
         [JsonProperty("organisasjonsNummer")]
         public int OrganizationNumber { get; set; }
 
+        [JsonProperty("underenhet", NullValueHandling = NullValueHandling.Ignore)]
+        public int? SubOrganizationNumber { get; set; }
+
         [JsonProperty("autoriserteRepresentanter", NullValueHandling = NullValueHandling.Ignore)]
         public List<PersonExternal> AuthorizedRepresentatives { get; set; }
 
