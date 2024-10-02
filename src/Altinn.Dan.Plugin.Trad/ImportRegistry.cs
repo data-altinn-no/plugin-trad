@@ -168,7 +168,7 @@ public class ImportRegistry
             // ADV2
             //    -> PRACTICE1
             //             -> FULLMEKTIG2
-            // even though FULLMEKTIG2 is a representative for ADV2, he/she isn't a representative for ADV1 unless explicitly stated
+            // even though FULLMEKTIG2 is a representative for ADV2, they aren't a representative for ADV1 unless explicitly stated
             //
             // Also note that there might be a case (as of writing one currently known instance) where a person is both a "advokat"
             // and a "fullmektig". This is not supported by the external model.
@@ -194,7 +194,7 @@ public class ImportRegistry
                 if (isAlreadyAddedAsRepresentative)
                 {
                     // The current person have been added to the seen list as an representative for someone else,
-                    // so make sure we include the authorizedRepresentatives he/she has for this practice
+                    // so make sure we include the authorizedRepresentatives they have for this practice
                     if (!seenPersons[person.Ssn].Practices
                             .Exists(x => x.OrganizationNumber == practice.OrganizationNumber))
                     {

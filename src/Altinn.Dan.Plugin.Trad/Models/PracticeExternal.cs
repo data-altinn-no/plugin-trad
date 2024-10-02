@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace Altinn.Dan.Plugin.Trad.Models
@@ -20,5 +16,8 @@ namespace Altinn.Dan.Plugin.Trad.Models
 
         [JsonProperty("erAutorisertRepresentantFor", NullValueHandling = NullValueHandling.Ignore)]
         public List<PersonExternal> IsaAuthorizedRepresentativeFor { get; set; }
+        
+        [JsonProperty("hovedpraksis", NullValueHandling = NullValueHandling.Ignore)]
+        public bool? MainPractice { get; set; }
     }
 }
