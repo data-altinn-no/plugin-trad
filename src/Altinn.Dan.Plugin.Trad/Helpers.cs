@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using Altinn.Dan.Plugin.Trad.Models;
@@ -103,6 +104,49 @@ public static class Helpers
             SubOrganizationNumber = practiceInternal.SubOrganizationNumber,
             MainPractice = practiceInternal.MainPractice
         };
+    }
+
+    public static ZipBulkPerson MapInternalPersonToZipBulk(PersonInternal personInternal)
+    {
+        if(personInternal == null) return null;
+
+        var zipBulkPerson = new ZipBulkPerson()
+        {
+            RegistrationNumber = personInternal.RegistrationNumber,
+            Ssn = personInternal.Ssn,
+            Title = personInternal.Title,
+            Practices = personInternal.Practices?
+                .Where(p => p is not null)
+                .Select(MapInternalPracticeToZipBulk)
+                .ToList()
+        };
+
+        return zipBulkPerson;
+    }
+
+    private static ZipBulkPractice MapInternalPracticeToZipBulk(PracticeInternal practiceInternal)
+    {
+        if(practiceInternal == null) return null;
+
+        var zipBulkPractice = new ZipBulkPractice
+        {
+            CompanyNumber = practiceInternal.CompanyNumber,
+            OrganizationNumber = practiceInternal.OrganizationNumber,
+            AuthorizedRepresentatives =
+                practiceInternal.AuthorizedRepresentatives?
+                    .Where(p => p is not null)
+                    .Select(MapInternalPersonToZipBulk)
+                    .ToList(),
+            IsAnAuthorizedRepresentativeFor =
+                practiceInternal.IsAnAuthorizedRepresentativeFor?
+                    .Where(p => p is not null)
+                    .Select(MapInternalPersonToZipBulk)
+                    .ToList(),
+            SubOrganizationNumber = practiceInternal.SubOrganizationNumber,
+            MainPractice = practiceInternal.MainPractice
+        };
+
+        return zipBulkPractice;
     }
 }
 

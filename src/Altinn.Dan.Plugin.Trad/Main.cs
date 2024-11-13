@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -37,6 +39,16 @@ public class Main
         var evidenceHarvesterRequest = JsonConvert.DeserializeObject<EvidenceHarvesterRequest>(requestBody);
 
         return await EvidenceSourceResponse.CreateResponse(req, () => GetEvidenceValuesVerifiserAdvokat(evidenceHarvesterRequest));
+    }
+
+    [Function("AdvokatverifikasjonPrivat")]
+    public async Task<HttpResponseData> RunAsyncAdvokatverifikasjonPrivat(
+        [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, 
+        FunctionContext context)
+    {
+        var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+        var evidenceHarvesterRequest = JsonConvert.DeserializeObject<EvidenceHarvesterRequest>(requestBody);
+        return await EvidenceSourceResponse.CreateResponse(req, () => GetEvidenceValuesVerifiserAdvokatPrivat(evidenceHarvesterRequest));
     }
 
     [Function("AdvRegPerson")]
@@ -82,6 +94,40 @@ public class Main
         }
 
         ecb.AddEvidenceValue("verifisert", false, EvidenceSourceMetadata.Source);
+        return ecb.GetEvidenceValues();
+    }
+
+    private async Task<List<EvidenceValue>> GetEvidenceValuesVerifiserAdvokatPrivat(
+        EvidenceHarvesterRequest evidenceHarvesterRequest)
+    {
+        var res = await _cache.GetAsync(Helpers.GetCacheKeyForSsn(evidenceHarvesterRequest.SubjectParty!.NorwegianSocialSecurityNumber));
+
+        var ecb = new EvidenceBuilder(_metadata, "AdvokatverifikasjonPrivat");
+        if (res != null)
+        {
+            var person = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
+            var authorizedRepresentatives = person.Practices
+                .SelectMany(p => p.AuthorizedRepresentatives)
+                .Select(a => new VerifiedAuthorizedRepresentatitve{FirstName = a.Firstname, LastName = a.LastName})
+                .ToList();
+            var organizations = person.Practices
+                .Select(p => p.OrganizationNumber)
+                .ToList();
+            var verifiedPerson = new VerifiedPersonPrivate
+            {
+                Verified = true,
+                Title = (TitleTypeExternal)person.Title,
+                FirstName = person.Firstname,
+                LastName = person.LastName,
+                AuthorizedRepresentatives = authorizedRepresentatives,
+                OrganizationNumbers = organizations
+            };
+            ecb.AddEvidenceValue("default", verifiedPerson, EvidenceSourceMetadata.Source);
+            return ecb.GetEvidenceValues();
+        }
+
+        ecb.AddEvidenceValue("default", new VerifiedPersonPrivate{ Verified = false }, EvidenceSourceMetadata.Source);
+
         return ecb.GetEvidenceValues();
     }
 

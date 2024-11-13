@@ -50,6 +50,28 @@ namespace Altinn.Dan.Plugin.Trad
                 },
                 new()
                 {
+                    EvidenceCodeName = "AdvokatverifikasjonPrivat",
+                    EvidenceSource = Source,
+                    BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
+                    Values = new List<EvidenceValue>
+                    {
+                        new()
+                        {
+                            EvidenceValueName = "default",
+                            ValueType = EvidenceValueType.JsonSchema,
+                            JsonSchemaDefintion = JsonSchema.FromType<VerifiedPersonPrivate>().ToJson(Formatting.None)
+                        }
+                    },
+                    AuthorizationRequirements = new List<Requirement>
+                    {
+                        new MaskinportenScopeRequirement
+                        {
+                            RequiredScopes = new List<string> { "altinn:dataaltinnno/advregverifikasjonprivat" }
+                        }
+                    }
+                },
+                new()
+                {
                     EvidenceCodeName = "AdvRegPerson",
                     EvidenceSource = Source,
                     BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
