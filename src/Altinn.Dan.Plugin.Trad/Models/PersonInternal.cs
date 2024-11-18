@@ -13,6 +13,12 @@ namespace Altinn.Dan.Plugin.Trad.Models
         
         [JsonProperty("title")]
         public TitleTypeInternal Title { get; set; }
+        
+        [JsonProperty("firstName")]
+        public string Firstname { get; set; }
+        
+        [JsonProperty("lastName")]
+        public string LastName { get; set; }
 
         [JsonProperty("practices", NullValueHandling = NullValueHandling.Ignore)]
         public List<PracticeInternal> Practices { get; set; }
