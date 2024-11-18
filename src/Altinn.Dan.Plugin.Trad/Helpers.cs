@@ -23,6 +23,11 @@ public static class Helpers
     {
         return MapInternalPersonToExternal(personInternal, true);
     }
+    
+    public static PersonPrivate MapInternalModelToPrivate(PersonInternal personInternal)
+    {
+        return MapInternalPersonToPrivate(personInternal, true);
+    }
 
     public static bool ShouldRunUpdate(DateTime? timeToCheck = null)
     {
@@ -147,6 +152,62 @@ public static class Helpers
         };
 
         return zipBulkPractice;
+    }
+    
+    private static List<PersonPrivate> MapInternalPersonListToPrivate(List<PersonInternal> personInternals,
+        bool descendIntoPractices)
+    {
+        if (personInternals == null || personInternals.Count == 0) return null;
+        var personList = new List<PersonPrivate>();
+        foreach (var personInternal in personInternals)
+        {
+            personList.Add(MapInternalPersonToPrivate(personInternal, descendIntoPractices));
+        }
+
+        return personList;
+    }
+
+    private static PersonPrivate MapInternalPersonToPrivate(PersonInternal personInternal,
+        bool descendIntoPractices)
+    {
+        var person = new PersonPrivate
+        {
+            FirstName = personInternal.Firstname,
+            LastName = personInternal.LastName,
+            Title = (TitleTypeExternal)personInternal.Title,
+        };
+
+        if (descendIntoPractices)
+        {
+            person.Practices = MapInternalPracticeListToPrivate(personInternal.Practices);
+        }
+
+        return person;
+    }
+
+    private static List<PracticePrivate> MapInternalPracticeListToPrivate(List<PracticeInternal> practiceInternals)
+    {
+        var practiceList = new List<PracticePrivate>();
+        foreach (var practice in practiceInternals)
+        {
+            practiceList.Add(MapInternalPracticeToPrivate(practice));
+        }
+
+        return practiceList;
+    }
+
+    private static PracticePrivate MapInternalPracticeToPrivate(PracticeInternal practiceInternal)
+    {
+        return new PracticePrivate
+        {
+            OrganizationNumber = practiceInternal.OrganizationNumber,
+            AuthorizedRepresentatives =
+                MapInternalPersonListToPrivate(practiceInternal.AuthorizedRepresentatives, false),
+            IsaAuthorizedRepresentativeFor =
+                MapInternalPersonListToPrivate(practiceInternal.IsAnAuthorizedRepresentativeFor, false),
+            SubOrganizationNumber = practiceInternal.SubOrganizationNumber,
+            MainPractice = practiceInternal.MainPractice
+        };
     }
 }
 

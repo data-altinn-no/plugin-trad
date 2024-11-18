@@ -59,6 +59,15 @@ public class Main
 
         return await EvidenceSourceResponse.CreateResponse(req, () => GetEvidenceValuesHentAdvokatRegisterPerson(evidenceHarvesterRequest));
     }
+    
+    [Function("AdvRegPersonPrivat")]
+    public async Task<HttpResponseData> RunAsyncHentPersonPrivat([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, FunctionContext context)
+    {
+        var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+        var evidenceHarvesterRequest = JsonConvert.DeserializeObject<EvidenceHarvesterRequest>(requestBody);
+
+        return await EvidenceSourceResponse.CreateResponse(req, () => GetEvidenceValuesHentAdvokatRegisterPersonPrivate(evidenceHarvesterRequest));
+    }
         
     [Function("AdvRegBulk.zip")]
     public async Task<HttpResponseData> RunAsyncBulk([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, FunctionContext context)
@@ -106,28 +115,14 @@ public class Main
         if (res != null)
         {
             var person = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
-            var authorizedRepresentatives = person.Practices
-                .SelectMany(p => p.AuthorizedRepresentatives)
-                .Select(a => new VerifiedAuthorizedRepresentatitve{FirstName = a.Firstname, LastName = a.LastName})
-                .ToList();
-            var organizations = person.Practices
-                .Select(p => p.OrganizationNumber)
-                .ToList();
-            var verifiedPerson = new VerifiedPersonPrivate
-            {
-                Verified = true,
-                Title = (TitleTypeExternal)person.Title,
-                FirstName = person.Firstname,
-                LastName = person.LastName,
-                AuthorizedRepresentatives = authorizedRepresentatives,
-                OrganizationNumbers = organizations
-            };
-            ecb.AddEvidenceValue("default", verifiedPerson, EvidenceSourceMetadata.Source);
+            ecb.AddEvidenceValue("verifisert", true, EvidenceSourceMetadata.Source);
+            ecb.AddEvidenceValue("tittel", person.Title, EvidenceSourceMetadata.Source);
+            ecb.AddEvidenceValue("fornavn", person.Firstname, EvidenceSourceMetadata.Source);
+            ecb.AddEvidenceValue("etternavn", person.LastName, EvidenceSourceMetadata.Source);
             return ecb.GetEvidenceValues();
         }
-
-        ecb.AddEvidenceValue("default", new VerifiedPersonPrivate{ Verified = false }, EvidenceSourceMetadata.Source);
-
+        
+        ecb.AddEvidenceValue("verifisert", false, EvidenceSourceMetadata.Source);
         return ecb.GetEvidenceValues();
     }
 
@@ -140,6 +135,25 @@ public class Main
         {
             var personInternal = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
             var person = Helpers.MapInternalModelToExternal(personInternal);
+            ecb.AddEvidenceValue("default", JsonConvert.SerializeObject(person), EvidenceSourceMetadata.Source);
+        }
+        else
+        {
+            ecb.AddEvidenceValue("default", "{}", EvidenceSourceMetadata.Source);
+        }
+
+        return ecb.GetEvidenceValues();
+    }
+    
+    private async Task<List<EvidenceValue>> GetEvidenceValuesHentAdvokatRegisterPersonPrivate(EvidenceHarvesterRequest evidenceHarvesterRequest)
+    {
+        var ecb = new EvidenceBuilder(_metadata, "AdvRegPerson");
+
+        var res = await _cache.GetAsync(Helpers.GetCacheKeyForSsn(evidenceHarvesterRequest.SubjectParty!.NorwegianSocialSecurityNumber));
+        if (res != null)
+        {
+            var personInternal = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
+            var person = Helpers.MapInternalModelToPrivate(personInternal);
             ecb.AddEvidenceValue("default", JsonConvert.SerializeObject(person), EvidenceSourceMetadata.Source);
         }
         else

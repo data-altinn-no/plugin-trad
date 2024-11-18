@@ -57,9 +57,23 @@ namespace Altinn.Dan.Plugin.Trad
                     {
                         new()
                         {
-                            EvidenceValueName = "default",
-                            ValueType = EvidenceValueType.JsonSchema,
-                            JsonSchemaDefintion = JsonSchema.FromType<VerifiedPersonPrivate>().ToJson(Formatting.None)
+                            EvidenceValueName = "fornavn",
+                            ValueType = EvidenceValueType.String
+                        },
+                        new()
+                        {
+                            EvidenceValueName = "etternavn",
+                            ValueType = EvidenceValueType.String
+                        },
+                        new()
+                        {
+                            EvidenceValueName = "verifisert",
+                            ValueType = EvidenceValueType.Boolean
+                        },
+                        new()
+                        {
+                            EvidenceValueName = "tittel",
+                            ValueType = EvidenceValueType.String
                         }
                     },
                     AuthorizationRequirements = new List<Requirement>
@@ -89,6 +103,28 @@ namespace Altinn.Dan.Plugin.Trad
                         new MaskinportenScopeRequirement
                         {
                             RequiredScopes = new List<string> { "altinn:dataaltinnno/advregperson" }
+                        }
+                    }
+                },
+                new()
+                {
+                    EvidenceCodeName = "AdvRegPersonPrivat",
+                    EvidenceSource = Source,
+                    BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
+                    Values = new List<EvidenceValue>
+                    {
+                        new()
+                        {
+                            EvidenceValueName = "default",
+                            ValueType = EvidenceValueType.JsonSchema,
+                            JsonSchemaDefintion = JsonSchema.FromType<PersonPrivate>().ToJson(Formatting.None),
+                        }
+                    },
+                    AuthorizationRequirements = new List<Requirement>
+                    {
+                        new MaskinportenScopeRequirement
+                        {
+                            RequiredScopes = new List<string> { "altinn:dataaltinnno/advregpersonprivat" }
                         }
                     }
                 },
