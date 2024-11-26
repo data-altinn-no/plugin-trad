@@ -48,8 +48,8 @@ public class Main
         return await EvidenceSourceResponse.CreateResponse(req, () => GetEvidenceValuesHentAdvokatRegisterPerson(evidenceHarvesterRequest));
     }
         
-    [Function("AdvRegBulk.zip")]
-    public async Task<HttpResponseData> RunAsyncBulk([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, FunctionContext context)
+    [Function("AdvRegBulkzip")]
+    public async Task<HttpResponseData> RunAsyncBulk([HttpTrigger(AuthorizationLevel.Function, "post", Route = "AdvRegBulk.zip")] HttpRequestData req, FunctionContext context)
     {
         Stream bulkStream = await GetZippedRegistryAsBulk();
         var response = req.CreateResponse(HttpStatusCode.OK);
