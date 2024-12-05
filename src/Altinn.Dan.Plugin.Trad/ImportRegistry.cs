@@ -279,6 +279,13 @@ public class ImportRegistry
     private async Task UpdateBulkEntry(List<PersonInternal> registry)
     {
         using var _ = _logger.Timer("es-trad-update-cache-bulk");
+        
+        // Mapping to custom model for zip bulk, as we don't necessarily want to expose everything that we cache
+        var zipbulkRegistry = registry
+            .Where(r => r is not null)
+            .Select(Helpers.MapInternalPersonToZipBulk)
+            .ToList();
+        
         using (var zipContent = new MemoryStream())
         {
             using (var archive = new ZipArchive(zipContent, ZipArchiveMode.Create)) {
@@ -286,7 +293,7 @@ public class ImportRegistry
                 var jsonSerializer = new JsonSerializer();
                 await using (var sw = new StreamWriter(archiveEntry.Open()))
                 {
-                    jsonSerializer.Serialize(sw, registry);            
+                    jsonSerializer.Serialize(sw, zipbulkRegistry);            
                 }
             }    
             var db = _redis.GetDatabase();

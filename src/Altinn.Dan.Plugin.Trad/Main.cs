@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -39,6 +41,16 @@ public class Main
         return await EvidenceSourceResponse.CreateResponse(req, () => GetEvidenceValuesVerifiserAdvokat(evidenceHarvesterRequest));
     }
 
+    [Function("AdvokatverifikasjonPrivat")]
+    public async Task<HttpResponseData> RunAsyncAdvokatverifikasjonPrivat(
+        [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, 
+        FunctionContext context)
+    {
+        var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+        var evidenceHarvesterRequest = JsonConvert.DeserializeObject<EvidenceHarvesterRequest>(requestBody);
+        return await EvidenceSourceResponse.CreateResponse(req, () => GetEvidenceValuesVerifiserAdvokatPrivat(evidenceHarvesterRequest));
+    }
+
     [Function("AdvRegPerson")]
     public async Task<HttpResponseData> RunAsyncHentPerson([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, FunctionContext context)
     {
@@ -46,6 +58,15 @@ public class Main
         var evidenceHarvesterRequest = JsonConvert.DeserializeObject<EvidenceHarvesterRequest>(requestBody);
 
         return await EvidenceSourceResponse.CreateResponse(req, () => GetEvidenceValuesHentAdvokatRegisterPerson(evidenceHarvesterRequest));
+    }
+    
+    [Function("AdvRegPersonPrivat")]
+    public async Task<HttpResponseData> RunAsyncHentPersonPrivat([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, FunctionContext context)
+    {
+        var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+        var evidenceHarvesterRequest = JsonConvert.DeserializeObject<EvidenceHarvesterRequest>(requestBody);
+
+        return await EvidenceSourceResponse.CreateResponse(req, () => GetEvidenceValuesHentAdvokatRegisterPersonPrivate(evidenceHarvesterRequest));
     }
         
     [Function("AdvRegBulkzip")]
@@ -85,6 +106,26 @@ public class Main
         return ecb.GetEvidenceValues();
     }
 
+    private async Task<List<EvidenceValue>> GetEvidenceValuesVerifiserAdvokatPrivat(
+        EvidenceHarvesterRequest evidenceHarvesterRequest)
+    {
+        var res = await _cache.GetAsync(Helpers.GetCacheKeyForSsn(evidenceHarvesterRequest.SubjectParty!.NorwegianSocialSecurityNumber));
+
+        var ecb = new EvidenceBuilder(_metadata, "AdvokatverifikasjonPrivat");
+        if (res != null)
+        {
+            var person = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
+            ecb.AddEvidenceValue("verifisert", true, EvidenceSourceMetadata.Source);
+            ecb.AddEvidenceValue("tittel", person.Title, EvidenceSourceMetadata.Source);
+            ecb.AddEvidenceValue("fornavn", person.Firstname, EvidenceSourceMetadata.Source);
+            ecb.AddEvidenceValue("etternavn", person.LastName, EvidenceSourceMetadata.Source);
+            return ecb.GetEvidenceValues();
+        }
+        
+        ecb.AddEvidenceValue("verifisert", false, EvidenceSourceMetadata.Source);
+        return ecb.GetEvidenceValues();
+    }
+
     private async Task<List<EvidenceValue>> GetEvidenceValuesHentAdvokatRegisterPerson(EvidenceHarvesterRequest evidenceHarvesterRequest)
     {
         var ecb = new EvidenceBuilder(_metadata, "AdvRegPerson");
@@ -94,6 +135,25 @@ public class Main
         {
             var personInternal = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
             var person = Helpers.MapInternalModelToExternal(personInternal);
+            ecb.AddEvidenceValue("default", JsonConvert.SerializeObject(person), EvidenceSourceMetadata.Source);
+        }
+        else
+        {
+            ecb.AddEvidenceValue("default", "{}", EvidenceSourceMetadata.Source);
+        }
+
+        return ecb.GetEvidenceValues();
+    }
+    
+    private async Task<List<EvidenceValue>> GetEvidenceValuesHentAdvokatRegisterPersonPrivate(EvidenceHarvesterRequest evidenceHarvesterRequest)
+    {
+        var ecb = new EvidenceBuilder(_metadata, "AdvRegPerson");
+
+        var res = await _cache.GetAsync(Helpers.GetCacheKeyForSsn(evidenceHarvesterRequest.SubjectParty!.NorwegianSocialSecurityNumber));
+        if (res != null)
+        {
+            var personInternal = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
+            var person = Helpers.MapInternalModelToPrivate(personInternal);
             ecb.AddEvidenceValue("default", JsonConvert.SerializeObject(person), EvidenceSourceMetadata.Source);
         }
         else
