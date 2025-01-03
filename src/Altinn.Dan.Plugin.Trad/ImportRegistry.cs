@@ -122,7 +122,7 @@ public class ImportRegistry
 
         if (!result.IsSuccessStatusCode)
         {
-            _logger.LogError("Unable to fetch persons from TRAD, statuscode: {Code} reasonphrase: {Reason}", result.StatusCode.ToString(), result.ReasonPhrase);
+            _logger.LogCritical("Unable to fetch persons from TRAD, statuscode: {Code} reasonphrase: {Reason}", result.StatusCode.ToString(), result.ReasonPhrase);
             throw new EvidenceSourcePermanentClientException(EvidenceSourceMetadata.ErrorCodeUpstreamError, "Unable to fetch persons from TRAD");
         }
 
@@ -132,7 +132,7 @@ public class ImportRegistry
             return response;
         }
         catch (Exception e) {
-            _logger.LogError("Unable to decode response from TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
+            _logger.LogCritical("Unable to decode response from TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
             throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeUpstreamError,
                 "Did not understand the data model returned from upstream source");
         }
