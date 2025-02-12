@@ -119,6 +119,8 @@ public static class Helpers
         {
             RegistrationNumber = personInternal.RegistrationNumber,
             Ssn = personInternal.Ssn,
+            Firstname = personInternal.Firstname,
+            LastName = personInternal.LastName,
             Title = personInternal.Title,
             Practices = personInternal.Practices?
                 .Where(p => p is not null)
