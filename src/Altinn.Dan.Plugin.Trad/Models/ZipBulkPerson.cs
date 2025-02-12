@@ -10,6 +10,12 @@ public record ZipBulkPerson
 
     [JsonProperty("ssn")]
     public string Ssn { get; set; }
+    
+    [JsonProperty("firstName")]
+    public string Firstname { get; set; }
+        
+    [JsonProperty("lastName")]
+    public string LastName { get; set; }
         
     [JsonProperty("title")]
     public TitleTypeInternal Title { get; set; }
