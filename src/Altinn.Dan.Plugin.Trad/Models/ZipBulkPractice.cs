@@ -22,4 +22,10 @@ public record ZipBulkPractice
         
     [JsonProperty("hovedpraksis", NullValueHandling = NullValueHandling.Ignore)]
     public bool? MainPractice;
+    
+    [JsonProperty("orgNavn", NullValueHandling = NullValueHandling.Ignore)]
+    public string OrganizationName { get; set; }
+    
+    [JsonProperty("subOrgNavn", NullValueHandling = NullValueHandling.Ignore)]
+    public string SubOrganizationName { get; set; }
 }
