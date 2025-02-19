@@ -9,6 +9,7 @@ using System.Net;
 using Moq.Protected;
 using System.Threading.Tasks;
 using System.Threading;
+using Dan.Common.Interfaces;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
@@ -20,6 +21,7 @@ namespace Altinn.Dan.Plugin.Trad.Test
         private readonly Mock<IHttpClientFactory> _mockFactory = new();
         private readonly Mock<IConnectionMultiplexer> _mockConnectionMultiplexer = new();
         private readonly Mock<IDatabase> _mockDatabase = new();
+        private readonly Mock<IEntityRegistryService> _mockEntityRegistryService = new();
         private readonly ILoggerFactory _loggerFactory = new LoggerFactory();
 
         [TestInitialize]
@@ -39,7 +41,13 @@ namespace Altinn.Dan.Plugin.Trad.Test
             // Setup 
             var mockCache = new MockCache();
             var options = Options.Create(new ApplicationSettings() { RegistryURL = "http://some_url.blahblah.nope", ApiKey = "secretapikey"});
-            var func = new ImportRegistry(_loggerFactory, _mockFactory.Object, options, mockCache, _mockConnectionMultiplexer.Object);
+            var func = new ImportRegistry(
+                _loggerFactory,
+                _mockFactory.Object, 
+                options, 
+                mockCache,
+                _mockConnectionMultiplexer.Object,
+                _mockEntityRegistryService.Object);
 
             // Act
             await func.PerformUpdate();
