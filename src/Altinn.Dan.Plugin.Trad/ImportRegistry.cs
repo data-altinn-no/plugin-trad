@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -11,6 +12,7 @@ using System.Threading.Tasks;
 using Altinn.Dan.Plugin.Trad.Config;
 using Altinn.Dan.Plugin.Trad.Models;
 using Dan.Common.Exceptions;
+using Dan.Common.Interfaces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Caching.Distributed;
@@ -28,14 +30,20 @@ public class ImportRegistry
     private readonly HttpClient _client;
     private readonly IDistributedCache _cache;
     private readonly IConnectionMultiplexer _redis;
+    private readonly IEntityRegistryService _entityRegistryService;
 
-    public ImportRegistry(ILoggerFactory loggerFactory, IHttpClientFactory httpClientFactory, IOptions<ApplicationSettings> settings, IDistributedCache cache, IConnectionMultiplexer connectionMultiplexer)
+    private readonly ConcurrentDictionary<int, string> _seenPraticeNames;
+
+    public ImportRegistry(ILoggerFactory loggerFactory, IHttpClientFactory httpClientFactory, IOptions<ApplicationSettings> settings, IDistributedCache cache, IConnectionMultiplexer connectionMultiplexer, IEntityRegistryService entityRegistryService)
     {
         _client = httpClientFactory.CreateClient("SafeHttpClient");
         _logger = loggerFactory.CreateLogger<ImportRegistry>();
         _settings = settings.Value;
         _cache = cache;
         _redis = connectionMultiplexer;
+        _entityRegistryService = entityRegistryService;
+
+        _seenPraticeNames = new ConcurrentDictionary<int, string>();
     }
 
     [Function("ImportRegistry")]
@@ -189,6 +197,21 @@ public class ImportRegistry
             if (person.Practices == null) continue;
             foreach (var practice in person.Practices)
             {
+                var orgName = await GetOrgName(practice.OrganizationNumber);
+                if (orgName is not null)
+                {
+                    practice.OrganizationName = orgName;
+                }
+
+                if (practice.SubOrganizationNumber is not null)
+                {
+                    var subOrgName = await GetOrgName(practice.SubOrganizationNumber.Value);
+                    if (subOrgName is not null)
+                    {
+                        practice.SubOrganizationName = subOrgName;
+                    }
+                }
+                
                 if (practice.AuthorizedRepresentatives == null || practice.AuthorizedRepresentatives.Count == 0) continue;
 
                 if (isAlreadyAddedAsRepresentative)
@@ -332,5 +355,19 @@ public class ImportRegistry
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24)
         });
+    }
+
+    private async Task<string> GetOrgName(int orgNr)
+    {
+        if (_seenPraticeNames.TryGetValue(orgNr, out var name))
+        {
+            return name;
+        }
+        var practiceOrg = await _entityRegistryService.GetFull(orgNr.ToString());
+        if (practiceOrg is null) return null;
+        
+        _seenPraticeNames.TryAdd(orgNr, practiceOrg.Navn);
+        return practiceOrg.Navn;
+
     }
 }

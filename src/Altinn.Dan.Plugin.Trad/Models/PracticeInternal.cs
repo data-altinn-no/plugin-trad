@@ -22,5 +22,9 @@ namespace Altinn.Dan.Plugin.Trad.Models
         
         [JsonProperty("hovedpraksis", NullValueHandling = NullValueHandling.Ignore)]
         public bool? MainPractice;
+
+        // Not fetched from trad-registry, fetched from ER, so no json property needed, as we'll cache as we go
+        public string OrganizationName { get; set; }
+        public string SubOrganizationName { get; set; }
     }
 }

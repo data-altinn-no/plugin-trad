@@ -150,7 +150,9 @@ public static class Helpers
                     .Select(MapInternalPersonToZipBulk)
                     .ToList(),
             SubOrganizationNumber = practiceInternal.SubOrganizationNumber,
-            MainPractice = practiceInternal.MainPractice
+            MainPractice = practiceInternal.MainPractice,
+            OrganizationName = practiceInternal.OrganizationName,
+            SubOrganizationName = practiceInternal.SubOrganizationName
         };
 
         return zipBulkPractice;
