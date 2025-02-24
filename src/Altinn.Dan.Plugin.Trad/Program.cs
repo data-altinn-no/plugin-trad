@@ -1,4 +1,5 @@
 using Altinn.Dan.Plugin.Trad.Config;
+using Altinn.Dan.Plugin.Trad.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -27,6 +28,7 @@ var host = new HostBuilder()
 
         services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(applicationSettings.RedisConnectionString));
 
+        services.AddTransient<IOrganizationService, OrganizationService>();
     })
     .Build();
 

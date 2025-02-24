@@ -9,6 +9,7 @@ using System.Net;
 using Moq.Protected;
 using System.Threading.Tasks;
 using System.Threading;
+using Altinn.Dan.Plugin.Trad.Services;
 using Dan.Common.Interfaces;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
@@ -21,7 +22,7 @@ namespace Altinn.Dan.Plugin.Trad.Test
         private readonly Mock<IHttpClientFactory> _mockFactory = new();
         private readonly Mock<IConnectionMultiplexer> _mockConnectionMultiplexer = new();
         private readonly Mock<IDatabase> _mockDatabase = new();
-        private readonly Mock<IEntityRegistryService> _mockEntityRegistryService = new();
+        private readonly Mock<IOrganizationService> _mockOrganizationService = new();
         private readonly ILoggerFactory _loggerFactory = new LoggerFactory();
 
         [TestInitialize]
@@ -47,7 +48,7 @@ namespace Altinn.Dan.Plugin.Trad.Test
                 options, 
                 mockCache,
                 _mockConnectionMultiplexer.Object,
-                _mockEntityRegistryService.Object);
+                _mockOrganizationService.Object);
 
             // Act
             await func.PerformUpdate();

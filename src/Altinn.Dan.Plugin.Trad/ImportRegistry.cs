@@ -11,8 +11,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Altinn.Dan.Plugin.Trad.Config;
 using Altinn.Dan.Plugin.Trad.Models;
+using Altinn.Dan.Plugin.Trad.Services;
 using Dan.Common.Exceptions;
-using Dan.Common.Interfaces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Caching.Distributed;
@@ -30,18 +30,18 @@ public class ImportRegistry
     private readonly HttpClient _client;
     private readonly IDistributedCache _cache;
     private readonly IConnectionMultiplexer _redis;
-    private readonly IEntityRegistryService _entityRegistryService;
+    private readonly IOrganizationService _organizationService;
 
     private readonly ConcurrentDictionary<int, string> _seenPraticeNames;
 
-    public ImportRegistry(ILoggerFactory loggerFactory, IHttpClientFactory httpClientFactory, IOptions<ApplicationSettings> settings, IDistributedCache cache, IConnectionMultiplexer connectionMultiplexer, IEntityRegistryService entityRegistryService)
+    public ImportRegistry(ILoggerFactory loggerFactory, IHttpClientFactory httpClientFactory, IOptions<ApplicationSettings> settings, IDistributedCache cache, IConnectionMultiplexer connectionMultiplexer, IOrganizationService organizationService)
     {
         _client = httpClientFactory.CreateClient("SafeHttpClient");
         _logger = loggerFactory.CreateLogger<ImportRegistry>();
         _settings = settings.Value;
         _cache = cache;
         _redis = connectionMultiplexer;
-        _entityRegistryService = entityRegistryService;
+        _organizationService = organizationService;
 
         _seenPraticeNames = new ConcurrentDictionary<int, string>();
     }
@@ -197,7 +197,7 @@ public class ImportRegistry
             if (person.Practices == null) continue;
             foreach (var practice in person.Practices)
             {
-                var orgName = await GetOrgName(practice.OrganizationNumber);
+                var orgName = await _organizationService.GetOrgName(practice.OrganizationNumber);
                 if (orgName is not null)
                 {
                     practice.OrganizationName = orgName;
@@ -205,7 +205,7 @@ public class ImportRegistry
 
                 if (practice.SubOrganizationNumber is not null)
                 {
-                    var subOrgName = await GetOrgName(practice.SubOrganizationNumber.Value);
+                    var subOrgName = await _organizationService.GetOrgName(practice.SubOrganizationNumber.Value);
                     if (subOrgName is not null)
                     {
                         practice.SubOrganizationName = subOrgName;
@@ -355,19 +355,5 @@ public class ImportRegistry
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24)
         });
-    }
-
-    private async Task<string> GetOrgName(int orgNr)
-    {
-        if (_seenPraticeNames.TryGetValue(orgNr, out var name))
-        {
-            return name;
-        }
-        var practiceOrg = await _entityRegistryService.GetFull(orgNr.ToString());
-        if (practiceOrg is null) return null;
-        
-        _seenPraticeNames.TryAdd(orgNr, practiceOrg.Navn);
-        return practiceOrg.Navn;
-
     }
 }
