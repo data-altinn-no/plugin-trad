@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -73,6 +71,15 @@ public class Main
     public async Task<HttpResponseData> RunAsyncBulk([HttpTrigger(AuthorizationLevel.Function, "post", Route = "AdvRegBulk.zip")] HttpRequestData req, FunctionContext context)
     {
         Stream bulkStream = await GetZippedRegistryAsBulk();
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        await bulkStream.CopyToAsync(response.Body);
+        return response;
+    }
+    
+    [Function("AdvRegBulkPrivatzip")]
+    public async Task<HttpResponseData> RunAsyncBulkPrivate([HttpTrigger(AuthorizationLevel.Function, "post", Route = "AdvRegBulkPrivat.zip")] HttpRequestData req, FunctionContext context)
+    {
+        Stream bulkStream = await GetPrivateZippedRegistryAsBulk();
         var response = req.CreateResponse(HttpStatusCode.OK);
         await bulkStream.CopyToAsync(response.Body);
         return response;
@@ -168,6 +175,13 @@ public class Main
     {
         var db = _redis.GetDatabase();
         byte[] bytes = await db.StringGetAsync(ApplicationSettings.RedisBulkEntryKey);
+        return new MemoryStream(bytes);
+    }
+    
+    private async Task<Stream> GetPrivateZippedRegistryAsBulk()
+    {
+        var db = _redis.GetDatabase();
+        byte[] bytes = await db.StringGetAsync(ApplicationSettings.RedisBulkEntryPrivateKey);
         return new MemoryStream(bytes);
     }
 }

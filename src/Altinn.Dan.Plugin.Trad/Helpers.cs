@@ -158,6 +158,52 @@ public static class Helpers
         return zipBulkPractice;
     }
     
+    public static ZipBulkPersonPrivate MapInternalPersonToZipBulkPrivate(PersonInternal personInternal)
+    {
+        if(personInternal == null) return null;
+
+        var zipBulkPerson = new ZipBulkPersonPrivate()
+        {
+            RegistrationNumber = personInternal.RegistrationNumber,
+            Firstname = personInternal.Firstname,
+            LastName = personInternal.LastName,
+            Title = personInternal.Title,
+            Practices = personInternal.Practices?
+                .Where(p => p is not null)
+                .Select(MapInternalPracticeToZipBulkPrivate)
+                .ToList()
+        };
+
+        return zipBulkPerson;
+    }
+
+    private static ZipBulkPracticePrivate MapInternalPracticeToZipBulkPrivate(PracticeInternal practiceInternal)
+    {
+        if(practiceInternal == null) return null;
+
+        var zipBulkPractice = new ZipBulkPracticePrivate
+        {
+            CompanyNumber = practiceInternal.CompanyNumber,
+            OrganizationNumber = practiceInternal.OrganizationNumber,
+            AuthorizedRepresentatives =
+                practiceInternal.AuthorizedRepresentatives?
+                    .Where(p => p is not null)
+                    .Select(MapInternalPersonToZipBulkPrivate)
+                    .ToList(),
+            IsAnAuthorizedRepresentativeFor =
+                practiceInternal.IsAnAuthorizedRepresentativeFor?
+                    .Where(p => p is not null)
+                    .Select(MapInternalPersonToZipBulkPrivate)
+                    .ToList(),
+            SubOrganizationNumber = practiceInternal.SubOrganizationNumber,
+            MainPractice = practiceInternal.MainPractice,
+            OrganizationName = practiceInternal.OrganizationName,
+            SubOrganizationName = practiceInternal.SubOrganizationName
+        };
+
+        return zipBulkPractice;
+    }
+    
     private static List<PersonPrivate> MapInternalPersonListToPrivate(List<PersonInternal> personInternals,
         bool descendIntoPractices)
     {

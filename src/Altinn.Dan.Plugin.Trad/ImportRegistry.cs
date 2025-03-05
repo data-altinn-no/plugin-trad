@@ -303,25 +303,15 @@ public class ImportRegistry
     {
         using var _ = _logger.Timer("es-trad-update-cache-bulk");
         
-        // Mapping to custom model for zip bulk, as we don't necessarily want to expose everything that we cache
-        var zipbulkRegistry = registry
-            .Where(r => r is not null)
-            .Select(Helpers.MapInternalPersonToZipBulk)
-            .ToList();
-        
-        using (var zipContent = new MemoryStream())
-        {
-            using (var archive = new ZipArchive(zipContent, ZipArchiveMode.Create)) {
-                var archiveEntry = archive.CreateEntry(ApplicationSettings.ZipEntryFileName);
-                var jsonSerializer = new JsonSerializer();
-                await using (var sw = new StreamWriter(archiveEntry.Open()))
-                {
-                    jsonSerializer.Serialize(sw, zipbulkRegistry);            
-                }
-            }    
-            var db = _redis.GetDatabase();
-            await db.StringSetAsync(ApplicationSettings.RedisBulkEntryKey, zipContent.ToArray());
-        }
+        await CacheZippedRegistry(
+            registry, 
+            ApplicationSettings.RedisBulkEntryKey,
+            Helpers.MapInternalPersonToZipBulk);
+
+        await CacheZippedRegistry(
+            registry, 
+            ApplicationSettings.RedisBulkEntryPrivateKey,
+            Helpers.MapInternalPersonToZipBulkPrivate);
     }
 
     private async Task UpdateCacheEntries(Dictionary<string, PersonInternal> persons)
@@ -355,5 +345,25 @@ public class ImportRegistry
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24)
         });
+    }
+
+    private async Task CacheZippedRegistry<T>(List<PersonInternal> registry, string cacheKey, Func<PersonInternal, T> mapper)
+    {
+        var mappedRegistry = registry
+            .Where(r => r is not null)
+            .Select(mapper)
+            .ToList();
+
+        using var zipContent = new MemoryStream();
+        using (var archive = new ZipArchive(zipContent, ZipArchiveMode.Create)) {
+            var archiveEntry = archive.CreateEntry(ApplicationSettings.ZipEntryFileName);
+            var jsonSerializer = new JsonSerializer();
+            await using (var sw = new StreamWriter(archiveEntry.Open()))
+            {
+                jsonSerializer.Serialize(sw, mappedRegistry);            
+            }
+        }    
+        var db = _redis.GetDatabase();
+        await db.StringSetAsync(cacheKey, zipContent.ToArray());
     }
 }
