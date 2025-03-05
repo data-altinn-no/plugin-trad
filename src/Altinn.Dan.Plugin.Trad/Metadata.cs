@@ -148,6 +148,27 @@ namespace Altinn.Dan.Plugin.Trad
                             RequiredScopes = new List<string> { "altinn:dataaltinnno/advregbulk" }
                         }
                     }
+                },
+                new()
+                {
+                    EvidenceCodeName = "AdvRegBulkPrivat.zip",
+                    EvidenceSource = Source,
+                    BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
+                    Values = new List<EvidenceValue>
+                    {
+                        new()
+                        {
+                            EvidenceValueName = "default",
+                            ValueType = EvidenceValueType.Binary
+                        }
+                    },
+                    AuthorizationRequirements = new List<Requirement>
+                    {
+                        new MaskinportenScopeRequirement
+                        {
+                            RequiredScopes = new List<string> { "altinn:dataaltinnno/advregbulkprivat" }
+                        }
+                    }
                 }
             };
 
