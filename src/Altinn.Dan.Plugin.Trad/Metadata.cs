@@ -22,6 +22,7 @@ namespace Altinn.Dan.Plugin.Trad
                     EvidenceCodeName = "AdvRegPersonVerifikasjon",
                     EvidenceSource = Source,
                     BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
+                    RequiredScopes = "dan:external/advreg",
                     Values = new List<EvidenceValue>
                     {
                         new()
@@ -53,6 +54,7 @@ namespace Altinn.Dan.Plugin.Trad
                     EvidenceCodeName = "AdvokatverifikasjonPrivat",
                     EvidenceSource = Source,
                     BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
+                    RequiredScopes = "dan:external/advreg",
                     Values = new List<EvidenceValue>
                     {
                         new()
@@ -89,6 +91,7 @@ namespace Altinn.Dan.Plugin.Trad
                     EvidenceCodeName = "AdvRegPerson",
                     EvidenceSource = Source,
                     BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
+                    RequiredScopes = "dan:external/advreg",
                     Values = new List<EvidenceValue>
                     {
                         new()
@@ -111,6 +114,7 @@ namespace Altinn.Dan.Plugin.Trad
                     EvidenceCodeName = "AdvRegPersonPrivat",
                     EvidenceSource = Source,
                     BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
+                    RequiredScopes = "dan:external/advreg",
                     Values = new List<EvidenceValue>
                     {
                         new()
@@ -133,6 +137,7 @@ namespace Altinn.Dan.Plugin.Trad
                     EvidenceCodeName = "AdvRegBulk.zip",
                     EvidenceSource = Source,
                     BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
+                    RequiredScopes = "dan:external/advreg",
                     Values = new List<EvidenceValue>
                     {
                         new()
@@ -154,6 +159,7 @@ namespace Altinn.Dan.Plugin.Trad
                     EvidenceCodeName = "AdvRegBulkPrivat.zip",
                     EvidenceSource = Source,
                     BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
+                    RequiredScopes = "dan:external/advreg",
                     Values = new List<EvidenceValue>
                     {
                         new()
