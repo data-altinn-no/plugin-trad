@@ -13,6 +13,7 @@ using Altinn.Dan.Plugin.Trad.Services;
 using Dan.Common.Interfaces;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
+using Altinn.ApiClients.Maskinporten.Interfaces;
 
 namespace Altinn.Dan.Plugin.Trad.Test
 {
@@ -23,6 +24,7 @@ namespace Altinn.Dan.Plugin.Trad.Test
         private readonly Mock<IConnectionMultiplexer> _mockConnectionMultiplexer = new();
         private readonly Mock<IDatabase> _mockDatabase = new();
         private readonly Mock<IOrganizationService> _mockOrganizationService = new();
+        private readonly Mock<IMaskinportenService> _mockMaskinportenService = new();
         private readonly ILoggerFactory _loggerFactory = new LoggerFactory();
 
         [TestInitialize]
@@ -48,7 +50,8 @@ namespace Altinn.Dan.Plugin.Trad.Test
                 options, 
                 mockCache,
                 _mockConnectionMultiplexer.Object,
-                _mockOrganizationService.Object);
+                _mockOrganizationService.Object,
+                _mockMaskinportenService.Object);
 
             // Act
             await func.PerformUpdate();

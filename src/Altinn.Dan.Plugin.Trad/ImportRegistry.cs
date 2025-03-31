@@ -9,6 +9,8 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Altinn.ApiClients.Maskinporten.Interfaces;
+using Altinn.ApiClients.Maskinporten.Services;
 using Altinn.Dan.Plugin.Trad.Config;
 using Altinn.Dan.Plugin.Trad.Models;
 using Altinn.Dan.Plugin.Trad.Services;
@@ -28,22 +30,26 @@ public class ImportRegistry
     private readonly ILogger _logger;
     private readonly ApplicationSettings _settings;
     private readonly HttpClient _client;
+    private readonly HttpClient _maskinportenClient;
     private readonly IDistributedCache _cache;
     private readonly IConnectionMultiplexer _redis;
     private readonly IOrganizationService _organizationService;
+    private readonly IMaskinportenService _maskinportenService;
 
     private readonly ConcurrentDictionary<int, string> _seenPraticeNames;
 
-    public ImportRegistry(ILoggerFactory loggerFactory, IHttpClientFactory httpClientFactory, IOptions<ApplicationSettings> settings, IDistributedCache cache, IConnectionMultiplexer connectionMultiplexer, IOrganizationService organizationService)
+    public ImportRegistry(ILoggerFactory loggerFactory, IHttpClientFactory httpClientFactory, IOptions<ApplicationSettings> settings, IDistributedCache cache, IConnectionMultiplexer connectionMultiplexer, IOrganizationService organizationService, IMaskinportenService maskinportenService)
     {
         _client = httpClientFactory.CreateClient("SafeHttpClient");
+        _maskinportenClient = httpClientFactory.CreateClient("myMaskinportenClient");
         _logger = loggerFactory.CreateLogger<ImportRegistry>();
         _settings = settings.Value;
         _cache = cache;
         _redis = connectionMultiplexer;
         _organizationService = organizationService;
-
         _seenPraticeNames = new ConcurrentDictionary<int, string>();
+
+        _maskinportenService = maskinportenService;
     }
 
     [Function("ImportRegistry")]
@@ -118,10 +124,10 @@ public class ImportRegistry
     {
         HttpResponseMessage result;
         try
-        {
+        {           
             var request = new HttpRequestMessage(HttpMethod.Get, _settings.RegistryURL);
-            request.Headers.Add("ApiKey", _settings.ApiKey);
-            result = await _client.SendAsync(request);
+            request.Headers.Add("ApiKey", _settings.ApiKey);           
+            result = await _maskinportenClient.SendAsync(request);
         }
         catch (HttpRequestException ex)
         {

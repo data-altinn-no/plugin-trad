@@ -7,6 +7,11 @@ using Microsoft.Extensions.Options;
 using Dan.Common.Extensions;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
+using Altinn.ApiClients.Maskinporten.Interfaces;
+using Altinn.ApiClients.Maskinporten.Services;
+using Altinn.ApiClients.Maskinporten.Config;
+using Altinn.ApiClients.Maskinporten.Extensions;
+using System;
 
 var host = new HostBuilder()
     .ConfigureDanPluginDefaults()
@@ -26,9 +31,24 @@ var host = new HostBuilder()
             option.Configuration = applicationSettings.RedisConnectionString;
         });
 
+        services.AddSingleton<IMaskinportenService, MaskinportenService>();
+        services.AddMemoryCache();
+        services.AddSingleton<ITokenCacheProvider, MemoryTokenCacheProvider>();
+
         services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(applicationSettings.RedisConnectionString));
 
         services.AddTransient<IOrganizationService, OrganizationService>();
+
+
+        var maskinportenSettings = new MaskinportenSettings()
+        {
+            EncodedX509 = applicationSettings.Certificate,
+            ClientId = applicationSettings.ClientId,
+            Scope = applicationSettings.Scope,
+            Environment = applicationSettings.MaskinportenEnv
+        };
+
+        services.AddMaskinportenHttpClient<SettingsX509ClientDefinition>("myMaskinportenClient", maskinportenSettings);
     })
     .Build();
 
