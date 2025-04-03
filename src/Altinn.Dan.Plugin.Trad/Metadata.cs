@@ -62,6 +62,11 @@ namespace Altinn.Dan.Plugin.Trad
                         },
                         new()
                         {
+                            EvidenceValueName = "mellomnavn",
+                            ValueType = EvidenceValueType.String
+                        },
+                        new()
+                        {
                             EvidenceValueName = "etternavn",
                             ValueType = EvidenceValueType.String
                         },

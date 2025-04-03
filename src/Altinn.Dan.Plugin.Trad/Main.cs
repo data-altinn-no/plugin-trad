@@ -125,6 +125,7 @@ public class Main
             ecb.AddEvidenceValue("verifisert", true, EvidenceSourceMetadata.Source);
             ecb.AddEvidenceValue("tittel", person.Title, EvidenceSourceMetadata.Source);
             ecb.AddEvidenceValue("fornavn", person.Firstname, EvidenceSourceMetadata.Source);
+            ecb.AddEvidenceValue("mellomnavn", person.MiddleName, EvidenceSourceMetadata.Source);
             ecb.AddEvidenceValue("etternavn", person.LastName, EvidenceSourceMetadata.Source);
             return ecb.GetEvidenceValues();
         }

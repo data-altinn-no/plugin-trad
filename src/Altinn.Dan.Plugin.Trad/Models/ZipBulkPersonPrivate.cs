@@ -10,6 +10,9 @@ public class ZipBulkPersonPrivate
     
     [JsonProperty("firstName")]
     public string Firstname { get; set; }
+    
+    [JsonProperty("middleName")]
+    public string MiddleName { get; set; }
         
     [JsonProperty("lastName")]
     public string LastName { get; set; }
