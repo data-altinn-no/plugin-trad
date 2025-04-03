@@ -120,6 +120,7 @@ public static class Helpers
             RegistrationNumber = personInternal.RegistrationNumber,
             Ssn = personInternal.Ssn,
             Firstname = personInternal.Firstname,
+            MiddleName = personInternal.MiddleName,
             LastName = personInternal.LastName,
             Title = personInternal.Title,
             Practices = personInternal.Practices?
@@ -166,6 +167,7 @@ public static class Helpers
         {
             RegistrationNumber = personInternal.RegistrationNumber,
             Firstname = personInternal.Firstname,
+            MiddleName = personInternal.MiddleName,
             LastName = personInternal.LastName,
             Title = personInternal.Title,
             Practices = personInternal.Practices?

@@ -129,8 +129,9 @@ public class ImportRegistry
             request.Headers.Add("ApiKey", _settings.ApiKey);           
             result = await _maskinportenClient.SendAsync(request);
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex)
         {
+            _logger.LogCritical("Unable to fetch persons from TRAD, reasonphrase: {Reason}", ex.Message);
             throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeUpstreamError, null, ex);
         }
 

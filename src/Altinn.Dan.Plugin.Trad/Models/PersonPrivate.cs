@@ -11,6 +11,9 @@ public record PersonPrivate
     [JsonProperty("fornavn")]
     public string FirstName { get; set; }
     
+    [JsonProperty("mellomnavn")]
+    public string MiddleName { get; set; }
+    
     [JsonProperty("etternavn")]
     public string LastName { get; set; }
     
