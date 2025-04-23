@@ -74,6 +74,7 @@ public static class Helpers
     {
         var person = new PersonExternal
         {
+            RegistrationNumber = personInternal.RegistrationNumber,
             Ssn = personInternal.Ssn,
             Title = (TitleTypeExternal)personInternal.Title,
         };
@@ -224,6 +225,7 @@ public static class Helpers
     {
         var person = new PersonPrivate
         {
+            RegistrationNumber = personInternal.RegistrationNumber,
             FirstName = personInternal.Firstname,
             LastName = personInternal.LastName,
             Title = (TitleTypeExternal)personInternal.Title,
