@@ -26,6 +26,11 @@ namespace Altinn.Dan.Plugin.Trad
                     {
                         new()
                         {
+                            EvidenceValueName = "regnr",
+                            ValueType = EvidenceValueType.String
+                        },
+                        new()
+                        {
                             EvidenceValueName = "fodselsnummer",
                             ValueType = EvidenceValueType.String
                         },
@@ -55,6 +60,11 @@ namespace Altinn.Dan.Plugin.Trad
                     BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
                     Values = new List<EvidenceValue>
                     {
+                        new()
+                        {
+                            EvidenceValueName = "regnr",
+                            ValueType = EvidenceValueType.String
+                        },
                         new()
                         {
                             EvidenceValueName = "fornavn",

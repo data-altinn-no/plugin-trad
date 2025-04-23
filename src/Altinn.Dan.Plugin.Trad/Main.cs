@@ -105,6 +105,7 @@ public class Main
         {
             var person = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
             ecb.AddEvidenceValue("verifisert", true, EvidenceSourceMetadata.Source);
+            ecb.AddEvidenceValue("regnr", person.RegistrationNumber, EvidenceSourceMetadata.Source);
             ecb.AddEvidenceValue("tittel", person.Title, EvidenceSourceMetadata.Source);
             return ecb.GetEvidenceValues();
         }
@@ -123,6 +124,7 @@ public class Main
         {
             var person = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
             ecb.AddEvidenceValue("verifisert", true, EvidenceSourceMetadata.Source);
+            ecb.AddEvidenceValue("regnr", person.RegistrationNumber, EvidenceSourceMetadata.Source);
             ecb.AddEvidenceValue("tittel", person.Title, EvidenceSourceMetadata.Source);
             ecb.AddEvidenceValue("fornavn", person.Firstname, EvidenceSourceMetadata.Source);
             ecb.AddEvidenceValue("mellomnavn", person.MiddleName, EvidenceSourceMetadata.Source);
