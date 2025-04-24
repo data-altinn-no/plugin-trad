@@ -5,6 +5,9 @@ namespace Altinn.Dan.Plugin.Trad.Models;
 
 public record PersonPrivate
 {
+    [JsonProperty("regnr", NullValueHandling = NullValueHandling.Ignore)]
+    public string RegistrationNumber { get; set; }
+    
     [JsonProperty("tittel")]
     public TitleTypeExternal? Title { get; set; }
     
