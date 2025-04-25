@@ -40,13 +40,7 @@ public static class Helpers
             return true;
         }
 
-        // Don't update at all between 0100 and 0459
-        if (norwegianTime.Hour is >= 1 and < 5)
-        {
-            return false;
-        }
-
-        // At 0400-0559 and 1759-0100 update every half hour. This assumes this is ran at most every 5 minutes.
+        // Otherwise update every half hour. This assumes this is ran at most every 5 minutes.
         if (norwegianTime.Minute is >= 58 or <= 2 or >= 28 and <= 32)
         {
             return true;
