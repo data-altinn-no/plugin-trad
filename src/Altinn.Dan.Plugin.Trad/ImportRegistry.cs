@@ -350,7 +350,7 @@ public class ImportRegistry
 
         await _cache.SetAsync(key, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24)
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2)
         });
     }
 
@@ -371,6 +371,6 @@ public class ImportRegistry
             }
         }    
         var db = _redis.GetDatabase();
-        await db.StringSetAsync(cacheKey, zipContent.ToArray());
+        await db.StringSetAsync(cacheKey, zipContent.ToArray(), TimeSpan.FromHours(4));
     }
 }
