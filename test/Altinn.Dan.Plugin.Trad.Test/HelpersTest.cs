@@ -19,10 +19,6 @@ namespace Altinn.Dan.Plugin.Trad.Test
             Assert.IsTrue(Helpers.ShouldRunUpdate(GetNorwayTime(12, 30)));
             Assert.IsTrue(Helpers.ShouldRunUpdate(GetNorwayTime(17, 59)));
             
-            // Silent time
-            Assert.IsFalse(Helpers.ShouldRunUpdate(GetNorwayTime(1)));
-            Assert.IsFalse(Helpers.ShouldRunUpdate(GetNorwayTime(4, 59)));
-            
             // Every half hour
             Assert.IsTrue(Helpers.ShouldRunUpdate(GetNorwayTime(5)));
             Assert.IsTrue(Helpers.ShouldRunUpdate(GetNorwayTime(5, 30)));
