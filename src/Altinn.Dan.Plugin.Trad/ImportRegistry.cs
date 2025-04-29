@@ -25,33 +25,18 @@ using StackExchange.Redis;
 
 namespace Altinn.Dan.Plugin.Trad;
 
-public class ImportRegistry
+public class ImportRegistry(
+    ILoggerFactory loggerFactory,
+    IHttpClientFactory httpClientFactory,
+    IOptions<ApplicationSettings> settings,
+    IDistributedCache cache,
+    IConnectionMultiplexer connectionMultiplexer,
+    IOrganizationService organizationService)
 {
-    private readonly ILogger _logger;
-    private readonly ApplicationSettings _settings;
-    private readonly HttpClient _client;
-    private readonly HttpClient _maskinportenClient;
-    private readonly IDistributedCache _cache;
-    private readonly IConnectionMultiplexer _redis;
-    private readonly IOrganizationService _organizationService;
-    private readonly IMaskinportenService _maskinportenService;
-
-    private readonly ConcurrentDictionary<int, string> _seenPraticeNames;
-
-    public ImportRegistry(ILoggerFactory loggerFactory, IHttpClientFactory httpClientFactory, IOptions<ApplicationSettings> settings, IDistributedCache cache, IConnectionMultiplexer connectionMultiplexer, IOrganizationService organizationService, IMaskinportenService maskinportenService)
-    {
-        _client = httpClientFactory.CreateClient("SafeHttpClient");
-        _maskinportenClient = httpClientFactory.CreateClient("myMaskinportenClient");
-        _logger = loggerFactory.CreateLogger<ImportRegistry>();
-        _settings = settings.Value;
-        _cache = cache;
-        _redis = connectionMultiplexer;
-        _organizationService = organizationService;
-        _seenPraticeNames = new ConcurrentDictionary<int, string>();
-
-        _maskinportenService = maskinportenService;
-    }
-
+    private readonly ILogger _logger = loggerFactory.CreateLogger<ImportRegistry>();
+    private readonly ApplicationSettings _settings = settings.Value;
+    private readonly HttpClient _maskinportenClient = httpClientFactory.CreateClient("myMaskinportenClient");
+    
     [Function("ImportRegistry")]
     public async Task RunAsync([TimerTrigger("0 */5 * * * *"
 #if DEBUG
@@ -204,7 +189,7 @@ public class ImportRegistry
             if (person.Practices == null) continue;
             foreach (var practice in person.Practices)
             {
-                var orgName = await _organizationService.GetOrgName(practice.OrganizationNumber);
+                var orgName = await organizationService.GetOrgName(practice.OrganizationNumber);
                 if (orgName is not null)
                 {
                     practice.OrganizationName = orgName;
@@ -212,7 +197,7 @@ public class ImportRegistry
 
                 if (practice.SubOrganizationNumber is not null)
                 {
-                    var subOrgName = await _organizationService.GetOrgName(practice.SubOrganizationNumber.Value);
+                    var subOrgName = await organizationService.GetOrgName(practice.SubOrganizationNumber.Value);
                     if (subOrgName is not null)
                     {
                         practice.SubOrganizationName = subOrgName;
@@ -300,8 +285,9 @@ public class ImportRegistry
         // Concurrently update the list in Redis while we create a zipped dump of the entire thing
         var updateIndividualEntriesTask = UpdateCacheEntries(seenPersons);
         var updateBulkEntryTask = UpdateBulkEntry(registry);
+        var cleanEntriesTask = CleanRemovedEntries(registry);
 
-        await Task.WhenAll(updateIndividualEntriesTask, updateBulkEntryTask);
+        await Task.WhenAll(updateIndividualEntriesTask, updateBulkEntryTask, cleanEntriesTask);
         
         _logger.LogInformation("Completed writing persons and bulk entry");
     }
@@ -348,7 +334,7 @@ public class ImportRegistry
         var key = Helpers.GetCacheKeyForSsn(personInternal.Ssn);
         var entry = JsonConvert.SerializeObject(personInternal);
 
-        await _cache.SetAsync(key, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
+        await cache.SetAsync(key, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2)
         });
@@ -370,7 +356,59 @@ public class ImportRegistry
                 jsonSerializer.Serialize(sw, mappedRegistry);            
             }
         }    
-        var db = _redis.GetDatabase();
+        var db = connectionMultiplexer.GetDatabase();
         await db.StringSetAsync(cacheKey, zipContent.ToArray(), TimeSpan.FromHours(4));
+    }
+    
+    private async Task CleanRemovedEntries(List<PersonInternal> registry)
+    {
+        var newSsns = registry
+            .Where(p => p.Ssn != null)
+            .Select(p => p.Ssn)
+            .Distinct()
+            .ToList();
+
+        var cachedResults = await cache.GetAsync(ApplicationSettings.RedisSsnListKey);
+        // Nothing cached; nothing to clean
+        if (cachedResults is null)
+        {
+            await UpdateSsnList(newSsns);
+            return;
+        }
+        var cachedSsns = JsonConvert.DeserializeObject<List<string>>(Encoding.UTF8.GetString(cachedResults));
+
+        var removedSsns = cachedSsns.Except(newSsns).ToList();
+        if (removedSsns.Count == 0)
+        {
+            await UpdateSsnList(newSsns);
+            return;
+        }
+        
+        var throttler = new SemaphoreSlim(30);
+
+        var tasks = removedSsns.Select(async ssn =>
+        {
+            await throttler.WaitAsync();
+            try
+            {
+                var key = Helpers.GetCacheKeyForSsn(ssn);
+                await cache.RemoveAsync(key);
+            }
+            finally
+            {
+                throttler.Release();
+            }
+        });
+        await Task.WhenAll(tasks);
+        await UpdateSsnList(newSsns);
+    }
+
+    private async Task UpdateSsnList(List<string> newSsns)
+    {
+        var entry = JsonConvert.SerializeObject(newSsns);
+        await cache.SetAsync(ApplicationSettings.RedisSsnListKey, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2)
+        });
     }
 }

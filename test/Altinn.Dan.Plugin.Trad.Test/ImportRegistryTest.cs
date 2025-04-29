@@ -50,8 +50,7 @@ namespace Altinn.Dan.Plugin.Trad.Test
                 options, 
                 mockCache,
                 _mockConnectionMultiplexer.Object,
-                _mockOrganizationService.Object,
-                _mockMaskinportenService.Object);
+                _mockOrganizationService.Object);
 
             // Act
             await func.PerformUpdate();
