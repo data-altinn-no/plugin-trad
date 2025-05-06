@@ -25,33 +25,18 @@ using StackExchange.Redis;
 
 namespace Altinn.Dan.Plugin.Trad;
 
-public class ImportRegistry
+public class ImportRegistry(
+    ILoggerFactory loggerFactory,
+    IHttpClientFactory httpClientFactory,
+    IOptions<ApplicationSettings> settings,
+    IDistributedCache cache,
+    IConnectionMultiplexer connectionMultiplexer,
+    IOrganizationService organizationService)
 {
-    private readonly ILogger _logger;
-    private readonly ApplicationSettings _settings;
-    private readonly HttpClient _client;
-    private readonly HttpClient _maskinportenClient;
-    private readonly IDistributedCache _cache;
-    private readonly IConnectionMultiplexer _redis;
-    private readonly IOrganizationService _organizationService;
-    private readonly IMaskinportenService _maskinportenService;
-
-    private readonly ConcurrentDictionary<int, string> _seenPraticeNames;
-
-    public ImportRegistry(ILoggerFactory loggerFactory, IHttpClientFactory httpClientFactory, IOptions<ApplicationSettings> settings, IDistributedCache cache, IConnectionMultiplexer connectionMultiplexer, IOrganizationService organizationService, IMaskinportenService maskinportenService)
-    {
-        _client = httpClientFactory.CreateClient("SafeHttpClient");
-        _maskinportenClient = httpClientFactory.CreateClient("myMaskinportenClient");
-        _logger = loggerFactory.CreateLogger<ImportRegistry>();
-        _settings = settings.Value;
-        _cache = cache;
-        _redis = connectionMultiplexer;
-        _organizationService = organizationService;
-        _seenPraticeNames = new ConcurrentDictionary<int, string>();
-
-        _maskinportenService = maskinportenService;
-    }
-
+    private readonly ILogger _logger = loggerFactory.CreateLogger<ImportRegistry>();
+    private readonly ApplicationSettings _settings = settings.Value;
+    private readonly HttpClient _maskinportenClient = httpClientFactory.CreateClient("myMaskinportenClient");
+    
     [Function("ImportRegistry")]
     public async Task RunAsync([TimerTrigger("0 */5 * * * *"
 #if DEBUG
@@ -204,7 +189,7 @@ public class ImportRegistry
             if (person.Practices == null) continue;
             foreach (var practice in person.Practices)
             {
-                var orgName = await _organizationService.GetOrgName(practice.OrganizationNumber);
+                var orgName = await organizationService.GetOrgName(practice.OrganizationNumber);
                 if (orgName is not null)
                 {
                     practice.OrganizationName = orgName;
@@ -212,7 +197,7 @@ public class ImportRegistry
 
                 if (practice.SubOrganizationNumber is not null)
                 {
-                    var subOrgName = await _organizationService.GetOrgName(practice.SubOrganizationNumber.Value);
+                    var subOrgName = await organizationService.GetOrgName(practice.SubOrganizationNumber.Value);
                     if (subOrgName is not null)
                     {
                         practice.SubOrganizationName = subOrgName;
@@ -299,9 +284,10 @@ public class ImportRegistry
 
         // Concurrently update the list in Redis while we create a zipped dump of the entire thing
         var updateIndividualEntriesTask = UpdateCacheEntries(seenPersons);
+        var cleanEntriesTask = CleanRemovedEntries(registry);
         var updateBulkEntryTask = UpdateBulkEntry(registry);
 
-        await Task.WhenAll(updateIndividualEntriesTask, updateBulkEntryTask);
+        await Task.WhenAll(updateIndividualEntriesTask, updateBulkEntryTask, cleanEntriesTask);
         
         _logger.LogInformation("Completed writing persons and bulk entry");
     }
@@ -348,7 +334,7 @@ public class ImportRegistry
         var key = Helpers.GetCacheKeyForSsn(personInternal.Ssn);
         var entry = JsonConvert.SerializeObject(personInternal);
 
-        await _cache.SetAsync(key, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
+        await cache.SetAsync(key, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2)
         });
@@ -370,7 +356,95 @@ public class ImportRegistry
                 jsonSerializer.Serialize(sw, mappedRegistry);            
             }
         }    
-        var db = _redis.GetDatabase();
+        var db = connectionMultiplexer.GetDatabase();
         await db.StringSetAsync(cacheKey, zipContent.ToArray(), TimeSpan.FromHours(4));
+    }
+    
+    private async Task CleanRemovedEntries(List<PersonInternal> registry)
+    {
+        var newRegNumbers = registry
+            .Where(p => p.RegistrationNumber != null)
+            .Select(p => p.RegistrationNumber)
+            .Distinct()
+            .ToList();
+
+        var cachedResults = await cache.GetAsync(ApplicationSettings.RedisRegNumberListKey);
+        // Nothing cached; nothing to clean
+        if (cachedResults is null)
+        {
+            await UpdateRegNumberList(newRegNumbers);
+            return;
+        }
+        var cachedRegNumbers = JsonConvert.DeserializeObject<List<string>>(Encoding.UTF8.GetString(cachedResults));
+
+        var removedRegNumbers = cachedRegNumbers.Except(newRegNumbers).ToList();
+        if (removedRegNumbers.Count == 0)
+        {
+            await UpdateRegNumberList(newRegNumbers);
+            return;
+        }
+        
+        var throttler = new SemaphoreSlim(30);
+
+        using var _ = _logger.Timer("es-trad-clean-cache-individuals");
+        _logger.LogInformation("Cleaning {Count} individual entries from cache", removedRegNumbers.Count);
+        var people = await GetCacheEntries();
+        if (people.Count == 0)
+        {
+            await UpdateRegNumberList(newRegNumbers);
+            return;
+        }
+            
+        var tasks = removedRegNumbers.Select(async regNumber =>
+        {
+            await throttler.WaitAsync();
+            try
+            {
+                var person = people.FirstOrDefault(p => p.RegistrationNumber == regNumber);
+                if (person is null)
+                {
+                    return;
+                }
+                var birthday = person.Ssn.AsSpan(0, 6).ToString();
+                _logger.LogInformation("Cleaning person {birthday}***** from cache", birthday);
+                var key = Helpers.GetCacheKeyForSsn(person.Ssn);
+                await cache.RemoveAsync(key);
+            }
+            finally
+            {
+                throttler.Release();
+            }
+        });
+        await Task.WhenAll(tasks);
+        await UpdateRegNumberList(newRegNumbers);
+    }
+
+    private async Task UpdateRegNumberList(List<string> newRegNumbers)
+    {
+        var entry = JsonConvert.SerializeObject(newRegNumbers);
+        await cache.SetAsync(ApplicationSettings.RedisRegNumberListKey, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2)
+        });
+    }
+
+    private async Task<List<ZipBulkPerson>> GetCacheEntries()
+    {
+        var db = connectionMultiplexer.GetDatabase();
+        var bytes = await db.StringGetAsync(ApplicationSettings.RedisBulkEntryKey);
+        using var stream = new MemoryStream(bytes);
+
+        using var archive = new ZipArchive(stream);
+        var entry = archive.Entries.FirstOrDefault(e => e.Name == ApplicationSettings.ZipEntryFileName);
+        if (entry is null)
+        {
+            return [];
+        }
+
+        var streamEntry = entry.Open();
+        using var streamReader = new StreamReader(streamEntry);
+        var stringContent = await streamReader.ReadToEndAsync();
+        var content = JsonConvert.DeserializeObject<List<ZipBulkPerson>>(stringContent);
+        return content;
     }
 }
