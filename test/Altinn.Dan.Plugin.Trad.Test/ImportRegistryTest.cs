@@ -57,7 +57,7 @@ namespace Altinn.Dan.Plugin.Trad.Test
 
             // Assert
 
-            var backingStore = mockCache.GetAll();
+            var backingStore = mockCache.GetAllPeople();
 
             // - 100 should have one pracice (500), one authorizedRepresentative (200)
             var person100 = backingStore[Helpers.GetCacheKeyForSsn("100")];

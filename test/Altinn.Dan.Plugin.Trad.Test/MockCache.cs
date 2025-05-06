@@ -11,16 +11,30 @@ namespace Altinn.Dan.Plugin.Trad.Test
 {
     public class MockCache : IDistributedCache
     {
-        private Dictionary<string, PersonInternal> _backingStore;
+        private Dictionary<string, byte[]> _backingStore;
 
         public MockCache()
         {
-            _backingStore = new Dictionary<string, PersonInternal>();
+            _backingStore = new Dictionary<string, byte[]>();
         }
 
-        public Dictionary<string, PersonInternal> GetAll()
+        // Not part of IDistributedCache
+        public Dictionary<string, PersonInternal> GetAllPeople()
         {
-            return _backingStore;
+            var personInternal = new Dictionary<string, PersonInternal>();
+            foreach (var item in _backingStore)
+            {
+                try
+                {
+                    var person = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(item.Value));
+                    personInternal.Add(item.Key, person!);
+                }
+                catch (JsonSerializationException)
+                {
+                    // Continue
+                }
+            }
+            return personInternal;
         }
 
         public byte[] Get(string key)
@@ -28,20 +42,24 @@ namespace Altinn.Dan.Plugin.Trad.Test
             return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_backingStore[key]));
         }
 
-        public async Task<byte[]> GetAsync(string key, CancellationToken token = new())
+        public async Task<byte[]?> GetAsync(string key, CancellationToken token = new())
         {
-            return await Task.FromResult(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_backingStore[key])));
+            if (!_backingStore.ContainsKey(key))
+            {
+                return default;
+            }
+            return await Task.FromResult(_backingStore[key]);
         }
 
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
         {
-            _backingStore[key] = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(value));
+            _backingStore[key] = value;
         }
 
         public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options,
             CancellationToken token = new())
         {
-            _backingStore[key] = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(value));
+            _backingStore[key] = value;
             await Task.CompletedTask;
         }
 
