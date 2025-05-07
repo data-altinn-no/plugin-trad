@@ -282,12 +282,12 @@ public class ImportRegistry(
 
         _logger.LogInformation("Completed building list of {PrincipalCount} principals and {AssociateCount} associates, writing total {SeenPersonsCount} entries to store ...", principalCount, seenPersons.Count-principalCount, seenPersons.Count);
 
-        // Concurrently update the list in Redis while we create a zipped dump of the entire thing
+        // Clean dependent on old bulk entry to compare old and new, so need to update that afterwards
         var updateIndividualEntriesTask = UpdateCacheEntries(seenPersons);
         var cleanEntriesTask = CleanRemovedEntries(registry);
-        var updateBulkEntryTask = UpdateBulkEntry(registry);
 
-        await Task.WhenAll(updateIndividualEntriesTask, updateBulkEntryTask, cleanEntriesTask);
+        await Task.WhenAll(updateIndividualEntriesTask, cleanEntriesTask);
+        await UpdateBulkEntry(registry);
         
         _logger.LogInformation("Completed writing persons and bulk entry");
     }
