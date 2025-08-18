@@ -27,4 +27,26 @@ namespace Altinn.Dan.Plugin.Trad.Models
         public string OrganizationName { get; set; }
         public string SubOrganizationName { get; set; }
     }
+    
+    // Temp model in lieu of a better fix
+    public record PracticeInternalTemp
+    {
+        [JsonProperty("firmanr", NullValueHandling = NullValueHandling.Ignore)]
+        public string CompanyNumber { get; set; }
+
+        [JsonProperty("orgNumber")]
+        public string OrganizationNumber { get; set; }
+
+        [JsonProperty("subOrgNumber", NullValueHandling = NullValueHandling.Ignore)]
+        public string SubOrganizationNumber { get; set; }
+
+        [JsonProperty("authorizedRepresentatives", NullValueHandling = NullValueHandling.Ignore)]
+        public List<PersonInternalTemp> AuthorizedRepresentatives;
+
+        [JsonProperty("isAuthorizedRepresentativeFor", NullValueHandling = NullValueHandling.Ignore)]
+        public List<PersonInternalTemp> IsAnAuthorizedRepresentativeFor;
+        
+        [JsonProperty("hovedpraksis", NullValueHandling = NullValueHandling.Ignore)]
+        public bool? MainPractice;
+    }
 }
