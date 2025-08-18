@@ -128,14 +128,41 @@ public class ImportRegistry(
 
         try
         {
-            var response = JsonConvert.DeserializeObject<List<PersonInternal>>(await result.Content.ReadAsStringAsync());
-            return response;
+            var response = JsonConvert.DeserializeObject<List<PersonInternalTemp>>(await result.Content.ReadAsStringAsync());
+            var cleaned = GetCleanedPeople(response);
+            var cleanedJson = JsonConvert.SerializeObject(cleaned);
+            var people = JsonConvert.DeserializeObject<List<PersonInternal>>(cleanedJson);
+            return people;
         }
         catch (Exception e) {
             _logger.LogCritical("Unable to decode response from TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
             throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeUpstreamError,
                 "Did not understand the data model returned from upstream source");
         }
+    }
+    
+    private List<PersonInternalTemp> GetCleanedPeople(List<PersonInternalTemp> people)
+    {
+        if (people == null) return null;
+        
+        foreach (var person in people)
+        {
+            if (person.Practices is null || person.Practices.Count == 0) continue;
+            
+            foreach (var practice in person.Practices)
+            {
+                practice.OrganizationNumber = practice.OrganizationNumber?.Replace(" ", string.Empty);
+                if (practice.SubOrganizationNumber is not null)
+                {
+                    practice.SubOrganizationNumber = practice.SubOrganizationNumber?.Replace(" ", string.Empty);
+                }
+
+                practice.IsAnAuthorizedRepresentativeFor = GetCleanedPeople(practice.IsAnAuthorizedRepresentativeFor);
+                practice.AuthorizedRepresentatives = GetCleanedPeople(practice.AuthorizedRepresentatives);
+            }
+        }
+
+        return people;
     }
 
     private async Task UpdateCache(List<PersonInternal> registry)
