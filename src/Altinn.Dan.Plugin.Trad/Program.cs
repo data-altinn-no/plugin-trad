@@ -12,6 +12,8 @@ using Altinn.ApiClients.Maskinporten.Services;
 using Altinn.ApiClients.Maskinporten.Config;
 using Altinn.ApiClients.Maskinporten.Extensions;
 using System;
+using Azure.Core;
+using Azure.Identity;
 
 var host = new HostBuilder()
     .ConfigureDanPluginDefaults()
@@ -26,11 +28,32 @@ var host = new HostBuilder()
 
         var applicationSettings = services.BuildServiceProvider().GetRequiredService<IOptions<ApplicationSettings>>().Value;
 
-        services.AddStackExchangeRedisCache(option =>
+        // In case of still using access key (or local redis),
+        TokenCredential credential = new DefaultAzureCredential();
+        if (applicationSettings.RedisConnectionString.Contains("password=") ||
+            applicationSettings.RedisConnectionString.Contains("127.0.0.1"))
         {
-            option.Configuration = applicationSettings.RedisConnectionString;
-        });
+            services.AddStackExchangeRedisCache(option =>
+            {
+                option.Configuration = applicationSettings.RedisConnectionString;
+            });
+        }
+        else
+        {
+            services.AddStackExchangeRedisCache(option =>
+            {
+                option.ConnectionMultiplexerFactory = async () =>
+                {
+                    var configurationOptions = await ConfigurationOptions
+                        .Parse(applicationSettings.RedisConnectionString)
+                        .ConfigureForAzureWithTokenCredentialAsync(credential);
 
+                    var connectionMultiplexer = await ConnectionMultiplexer.ConnectAsync(configurationOptions);
+
+                    return connectionMultiplexer;
+                };
+            });
+        }
         services.AddSingleton<IMaskinportenService, MaskinportenService>();
         services.AddMemoryCache();
         services.AddSingleton<ITokenCacheProvider, MemoryTokenCacheProvider>();
