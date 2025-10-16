@@ -12,6 +12,7 @@ using Altinn.ApiClients.Maskinporten.Services;
 using Altinn.ApiClients.Maskinporten.Config;
 using Altinn.ApiClients.Maskinporten.Extensions;
 using System;
+using System.Threading.Tasks;
 using Azure.Core;
 using Azure.Identity;
 
@@ -37,28 +38,25 @@ var host = new HostBuilder()
             {
                 option.Configuration = applicationSettings.RedisConnectionString;
             });
+            services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(applicationSettings.RedisConnectionString));
         }
         else
         {
+            var configurationOptions = ConfigurationOptions
+                .Parse(applicationSettings.RedisConnectionString)
+                .ConfigureForAzureWithTokenCredentialAsync(credential)
+                .GetAwaiter().GetResult();
+
+            IConnectionMultiplexer connectionMultiplexer = ConnectionMultiplexer.Connect(configurationOptions);
+            services.AddSingleton(connectionMultiplexer);
             services.AddStackExchangeRedisCache(option =>
             {
-                option.ConnectionMultiplexerFactory = async () =>
-                {
-                    var configurationOptions = await ConfigurationOptions
-                        .Parse(applicationSettings.RedisConnectionString)
-                        .ConfigureForAzureWithTokenCredentialAsync(credential);
-
-                    var connectionMultiplexer = await ConnectionMultiplexer.ConnectAsync(configurationOptions);
-
-                    return connectionMultiplexer;
-                };
+                option.ConnectionMultiplexerFactory = () => Task.FromResult(connectionMultiplexer);
             });
         }
         services.AddSingleton<IMaskinportenService, MaskinportenService>();
         services.AddMemoryCache();
         services.AddSingleton<ITokenCacheProvider, MemoryTokenCacheProvider>();
-
-        services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(applicationSettings.RedisConnectionString));
 
         services.AddTransient<IOrganizationService, OrganizationService>();
 
