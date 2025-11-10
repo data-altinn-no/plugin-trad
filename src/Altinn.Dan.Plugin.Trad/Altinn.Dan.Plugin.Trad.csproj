@@ -15,7 +15,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
     <PackageReference Include="Microsoft.Azure.KeyVault" Version="3.0.5" />
     <PackageReference Include="Microsoft.Azure.StackExchangeRedis" Version="3.2.1" />
-    <PackageReference Include="NJsonSchema" Version="11.5.1" />
+    <PackageReference Include="NJsonSchema" Version="11.5.2" />
     <PackageReference Include="NJsonSchema.NewtonsoftJson" Version="11.5.1" />
   </ItemGroup>
   <ItemGroup>
