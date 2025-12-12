@@ -39,7 +39,7 @@ public class Main
         return await EvidenceSourceResponse.CreateResponse(req, () => GetEvidenceValuesVerifiserAdvokat(evidenceHarvesterRequest));
     }
 
-    [Function("AdvokatverifikasjonPrivat")]
+    [Function("AdvRegPersonVerifikasjonPrivat")]
     public async Task<HttpResponseData> RunAsyncAdvokatverifikasjonPrivat(
         [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, 
         FunctionContext context)
