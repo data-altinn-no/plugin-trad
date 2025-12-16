@@ -55,9 +55,13 @@ namespace Altinn.Dan.Plugin.Trad
                 },
                 new()
                 {
-                    EvidenceCodeName = "AdvokatverifikasjonPrivat",
+                    EvidenceCodeName = "AdvRegPersonVerifikasjonPrivat",
                     EvidenceSource = Source,
                     BelongsToServiceContexts = new List<string> { "Advokatregisteret" },
+                    DatasetAliases = [
+                        new DatasetAlias{ ServiceContext = "Advokatregisteret", DatasetAliasName = "AdvRegPersonVerifikasjonPrivat" },
+                        new DatasetAlias{ ServiceContext = "Advokatregisteret", DatasetAliasName = "AdvokatverifikasjonPrivat" }
+                    ],
                     Values = new List<EvidenceValue>
                     {
                         new()

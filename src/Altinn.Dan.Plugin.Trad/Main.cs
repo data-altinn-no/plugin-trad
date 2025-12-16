@@ -39,7 +39,7 @@ public class Main
         return await EvidenceSourceResponse.CreateResponse(req, () => GetEvidenceValuesVerifiserAdvokat(evidenceHarvesterRequest));
     }
 
-    [Function("AdvokatverifikasjonPrivat")]
+    [Function("AdvRegPersonVerifikasjonPrivat")]
     public async Task<HttpResponseData> RunAsyncAdvokatverifikasjonPrivat(
         [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, 
         FunctionContext context)
@@ -119,7 +119,7 @@ public class Main
     {
         var res = await _cache.GetAsync(Helpers.GetCacheKeyForSsn(evidenceHarvesterRequest.SubjectParty!.NorwegianSocialSecurityNumber));
 
-        var ecb = new EvidenceBuilder(_metadata, "AdvokatverifikasjonPrivat");
+        var ecb = new EvidenceBuilder(_metadata, "AdvRegPersonVerifikasjonPrivat");
         if (res != null)
         {
             var person = JsonConvert.DeserializeObject<PersonInternal>(Encoding.UTF8.GetString(res));
