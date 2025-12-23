@@ -1,40 +1,38 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Net.Http;
-using Moq;
-using Microsoft.Extensions.Logging;
-using Altinn.Dan.Plugin.Trad.Config;
 using System;
 using System.Linq;
 using System.Net;
-using Moq.Protected;
-using System.Threading.Tasks;
+using System.Net.Http;
 using System.Threading;
-using Altinn.Dan.Plugin.Trad.Services;
-using Dan.Common.Interfaces;
-using Microsoft.Extensions.Options;
-using StackExchange.Redis;
+using System.Threading.Tasks;
 using Altinn.ApiClients.Maskinporten.Interfaces;
+using Altinn.Dan.Plugin.Trad.Config;
+using Altinn.Dan.Plugin.Trad.Services;
+using FakeItEasy;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using StackExchange.Redis;
 
 namespace Altinn.Dan.Plugin.Trad.Test
 {
     [TestClass]
     public class ImportRegistryTest
     {
-        private readonly Mock<IHttpClientFactory> _mockFactory = new();
-        private readonly Mock<IConnectionMultiplexer> _mockConnectionMultiplexer = new();
-        private readonly Mock<IDatabase> _mockDatabase = new();
-        private readonly Mock<IOrganizationService> _mockOrganizationService = new();
-        private readonly Mock<IMaskinportenService> _mockMaskinportenService = new();
+        private readonly IHttpClientFactory _mockFactory = A.Fake<IHttpClientFactory>();
+        private readonly IConnectionMultiplexer _mockConnectionMultiplexer = A.Fake<IConnectionMultiplexer>();
+        private readonly IDatabase _mockDatabase = A.Fake<IDatabase>();
+        private readonly IOrganizationService _mockOrganizationService = A.Fake<IOrganizationService>();
+        private readonly IMaskinportenService _mockMaskinportenService = A.Fake<IMaskinportenService>();
         private readonly ILoggerFactory _loggerFactory = new LoggerFactory();
 
         [TestInitialize]
         public void Initialize()
         {
-            _mockFactory.Setup(_ => _.CreateClient(It.IsAny<string>())).Returns(MakeFakeClient());
-            _mockDatabase.Setup(_ => _.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(), It.IsAny<bool>(), It.IsAny<When>(), It.IsAny<CommandFlags>()));
-            _mockConnectionMultiplexer.Setup(_ => _.GetDatabase(It.IsAny<int>(), It.IsAny<object?>()))
-                .Returns(_mockDatabase.Object);
+            A.CallTo(() => _mockFactory.CreateClient(A<string>._)).Returns(MakeFakeClient());
+            A.CallTo(() => _mockDatabase.StringSetAsync(A<RedisKey>._, A<RedisValue>._,
+                A<TimeSpan?>._, A<bool>._, A<When>._, A<CommandFlags>._));
+            A.CallTo(() => _mockConnectionMultiplexer.GetDatabase(A<int>._, A<object?>._))
+                .Returns(_mockDatabase);
         }
 
         [TestMethod]
@@ -46,11 +44,11 @@ namespace Altinn.Dan.Plugin.Trad.Test
             var options = Options.Create(new ApplicationSettings() { RegistryURL = "http://some_url.blahblah.nope", ApiKey = "secretapikey"});
             var func = new ImportRegistry(
                 _loggerFactory,
-                _mockFactory.Object, 
+                _mockFactory, 
                 options, 
                 mockCache,
-                _mockConnectionMultiplexer.Object,
-                _mockOrganizationService.Object);
+                _mockConnectionMultiplexer,
+                _mockOrganizationService);
 
             // Act
             await func.PerformUpdate();
@@ -283,19 +281,27 @@ namespace Altinn.Dan.Plugin.Trad.Test
 
         public static HttpClient GetHttpClientMock(string responseBody = "")
         {
-            var handler = new Mock<HttpMessageHandler>();
+            var handler = new FakeHttpMessageHandler(responseBody);
+            return new HttpClient(handler);
+        }
+    }
+    
+    public class FakeHttpMessageHandler : HttpMessageHandler
+    {
+        private readonly string _responseBody;
 
-            handler.Protected()
-                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
-                .Returns(Task<HttpResponseMessage>.Factory.StartNew(() =>
-                {
-                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(responseBody) };
-                })).Callback<HttpRequestMessage, CancellationToken>(
-                    (_, _) =>
-                    {
-                    });
+        public FakeHttpMessageHandler(string responseBody = "")
+        {
+            _responseBody = responseBody;
+        }
 
-            return new HttpClient(handler.Object);
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(_responseBody)
+            };
+            return Task.FromResult(response);
         }
     }
 }
