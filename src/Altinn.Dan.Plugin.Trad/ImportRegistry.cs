@@ -130,8 +130,10 @@ public class ImportRegistry(
         {
             var response = JsonConvert.DeserializeObject<List<PersonInternal>>(await result.Content.ReadAsStringAsync()).ToList();
             var missingOrgNumbers = response
-                .Where(p => p.Practices.Any(pr => pr.OrganizationNumber == null))
+                .Where(p => p.Practices is not null && 
+                            p.Practices.Any(pr => pr.OrganizationNumber == null))
                 .Select(p => p.RegistrationNumber)
+                .Distinct()
                 .ToList();
             var trimmedResponse = response
                 .Where(p => !missingOrgNumbers.Contains(p.RegistrationNumber))
