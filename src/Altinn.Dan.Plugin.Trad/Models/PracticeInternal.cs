@@ -11,7 +11,7 @@ namespace Altinn.Dan.Plugin.Trad.Models
 
         [JsonProperty("orgNumber")]
         [JsonConverter(typeof(IntegersWithSpacesConverter))]
-        public int OrganizationNumber { get; set; }
+        public int? OrganizationNumber { get; set; }
 
         [JsonProperty("subOrgNumber", NullValueHandling = NullValueHandling.Ignore)]
         [JsonConverter(typeof(IntegersWithSpacesConverter))]

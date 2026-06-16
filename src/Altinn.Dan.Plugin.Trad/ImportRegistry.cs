@@ -128,8 +128,21 @@ public class ImportRegistry(
 
         try
         {
-            var response = JsonConvert.DeserializeObject<List<PersonInternal>>(await result.Content.ReadAsStringAsync());
-            return response;
+            var response = JsonConvert.DeserializeObject<List<PersonInternal>>(await result.Content.ReadAsStringAsync()).ToList();
+            var missingOrgNumbers = response
+                .Where(p => p.Practices.Any(pr => pr.OrganizationNumber == null))
+                .Select(p => p.RegistrationNumber)
+                .ToList();
+            var trimmedResponse = response
+                .Where(p => !missingOrgNumbers.Contains(p.RegistrationNumber))
+                .ToList();
+            if (missingOrgNumbers.Count != 0)
+            {
+                // Just log the erroneous entries, but continue with the import of the rest
+                var errorRegNrs = string.Join(", ", missingOrgNumbers);
+                _logger.LogError("Following registration numbers were unable to be imported due to errors with data values: {regNrs}", errorRegNrs);
+            }
+            return trimmedResponse;
         }
         catch (Exception e) {
             _logger.LogCritical("Unable to decode response from TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
@@ -189,7 +202,7 @@ public class ImportRegistry(
             if (person.Practices == null) continue;
             foreach (var practice in person.Practices)
             {
-                var orgName = await organizationService.GetOrgName(practice.OrganizationNumber);
+                var orgName = await organizationService.GetOrgName(practice.OrganizationNumber.Value);
                 if (orgName is not null)
                 {
                     practice.OrganizationName = orgName;

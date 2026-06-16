@@ -96,7 +96,7 @@ public static class Helpers
     {
         return new PracticeExternal
         {
-            OrganizationNumber = practiceInternal.OrganizationNumber,
+            OrganizationNumber = practiceInternal.OrganizationNumber!.Value,
             AuthorizedRepresentatives =
                 MapInternalPersonListToExternal(practiceInternal.AuthorizedRepresentatives, false),
             IsaAuthorizedRepresentativeFor =
@@ -134,7 +134,7 @@ public static class Helpers
         var zipBulkPractice = new ZipBulkPractice
         {
             CompanyNumber = practiceInternal.CompanyNumber,
-            OrganizationNumber = practiceInternal.OrganizationNumber,
+            OrganizationNumber = practiceInternal.OrganizationNumber!.Value,
             AuthorizedRepresentatives =
                 practiceInternal.AuthorizedRepresentatives?
                     .Where(p => p is not null)
@@ -181,7 +181,7 @@ public static class Helpers
         var zipBulkPractice = new ZipBulkPracticePrivate
         {
             CompanyNumber = practiceInternal.CompanyNumber,
-            OrganizationNumber = practiceInternal.OrganizationNumber,
+            OrganizationNumber = practiceInternal.OrganizationNumber!.Value,
             AuthorizedRepresentatives =
                 practiceInternal.AuthorizedRepresentatives?
                     .Where(p => p is not null)
@@ -248,7 +248,7 @@ public static class Helpers
     {
         return new PracticePrivate
         {
-            OrganizationNumber = practiceInternal.OrganizationNumber,
+            OrganizationNumber = practiceInternal.OrganizationNumber!.Value,
             AuthorizedRepresentatives =
                 MapInternalPersonListToPrivate(practiceInternal.AuthorizedRepresentatives, false),
             IsaAuthorizedRepresentativeFor =
