@@ -4,7 +4,6 @@ using Dan.Common.Enums;
 using Dan.Common.Interfaces;
 using Dan.Common.Models;
 using Newtonsoft.Json;
-using NJsonSchema.NewtonsoftJson.Generation;
 
 namespace Altinn.Dan.Plugin.Trad
 {
@@ -114,7 +113,7 @@ namespace Altinn.Dan.Plugin.Trad
                         {
                             EvidenceValueName = "default",
                             ValueType = EvidenceValueType.JsonSchema,
-                            JsonSchemaDefintion = NewtonsoftJsonSchemaGenerator.FromType<PersonExternal>().ToJson(Formatting.None),
+                            JsonSchemaDefintion = EvidenceValue.SchemaFromObject<PersonExternal>(Formatting.None),
                         }
                     },
                     AuthorizationRequirements = new List<Requirement>
@@ -136,7 +135,7 @@ namespace Altinn.Dan.Plugin.Trad
                         {
                             EvidenceValueName = "default",
                             ValueType = EvidenceValueType.JsonSchema,
-                            JsonSchemaDefintion = NewtonsoftJsonSchemaGenerator.FromType<PersonPrivate>().ToJson(Formatting.None),
+                            JsonSchemaDefintion = EvidenceValue.SchemaFromObject<PersonPrivate>(Formatting.None),
                         }
                     },
                     AuthorizationRequirements = new List<Requirement>
