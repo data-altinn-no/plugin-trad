@@ -36,6 +36,8 @@ public class ImportRegistry(
     private readonly ILogger _logger = loggerFactory.CreateLogger<ImportRegistry>();
     private readonly ApplicationSettings _settings = settings.Value;
     private readonly HttpClient _maskinportenClient = httpClientFactory.CreateClient("myMaskinportenClient");
+
+    private static readonly TimeSpan CacheTime = TimeSpan.FromDays(7);
     
     [Function("ImportRegistry")]
     public async Task RunAsync([TimerTrigger("0 */5 * * * *"
@@ -351,7 +353,7 @@ public class ImportRegistry(
 
         await cache.SetAsync(key, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2)
+            AbsoluteExpirationRelativeToNow = CacheTime
         });
     }
 
@@ -372,7 +374,7 @@ public class ImportRegistry(
             }
         }    
         var db = connectionMultiplexer.GetDatabase();
-        await db.StringSetAsync(cacheKey, zipContent.ToArray(), TimeSpan.FromHours(4));
+        await db.StringSetAsync(cacheKey, zipContent.ToArray(), CacheTime);
     }
     
     private async Task CleanRemovedEntries(List<PersonInternal> registry)
