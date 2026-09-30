@@ -15,6 +15,7 @@ using Altinn.Dan.Plugin.Trad.Config;
 using Altinn.Dan.Plugin.Trad.Models;
 using Altinn.Dan.Plugin.Trad.Services;
 using Dan.Common.Exceptions;
+using Dan.Common.Extensions;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Caching.Distributed;
@@ -38,31 +39,64 @@ public class ImportRegistry(
     private readonly HttpClient _maskinportenClient = httpClientFactory.CreateClient("myMaskinportenClient");
 
     private static readonly TimeSpan CacheTime = TimeSpan.FromDays(7);
-    
-    [Function("ImportRegistry")]
-    public async Task RunAsync([TimerTrigger("0 */5 * * * *"
+
+    private const string LastSuccessImportKey = "Last_Successful_Import";
+
+    // Runs every 10 minutes between 0500 and 1800 on monday to friday.
+    // Ensure "WEBSITE_TIME_ZONE" app setting is set to "W. Europe Standard Time"
+    [Function("ImportRegistryWorkingHours")]
+    public async Task ImportRegistryWorkingHours([TimerTrigger("0 */10 5-17 * * MON-FRI"
 #if DEBUG
         , RunOnStartup = true
 #endif
     )] TimerInfo myTimer)
     {
-        _logger.LogInformation("Registry Import executed at: {Now}", DateTime.Now);
+        _logger.LogInformation("[Working Hours] Registry Import executed at: {Now}", DateTime.Now);
 
         if (myTimer.IsPastDue)
         {
-            _logger.LogInformation("Registry import was not run on schedule");
-        }
-
-        if (!Helpers.ShouldRunUpdate())
-        {
-            _logger.LogInformation("Skipping update outside of busy hours");
-            return;
+            _logger.LogInformation("[Working Hours] Registry import Working Hours was not run on schedule");
         }
 
         await PerformUpdate();
 
-        _logger.LogInformation("Import completed. Next scheduled import attempt at: {ScheduleStatusNext}", myTimer.ScheduleStatus?.Next);
+        _logger.LogInformation("[Working Hours] Import completed. Next scheduled import attempt at: {ScheduleStatusNext}", myTimer.ScheduleStatus?.Next);
+    }
 
+    // Runs every hour between 0500 and 1800 on monday to friday.
+    // Ensure "WEBSITE_TIME_ZONE" app setting is set to "W. Europe Standard Time"
+    [Function("ImportRegistryNights")]
+    public async Task ImportRegistryNights(
+        [TimerTrigger("0 0 18-23,0-4 * * MON-FRI")] TimerInfo myTimer)
+    {
+        _logger.LogInformation("[Nights] Registry Import executed at: {Now}", DateTime.Now);
+
+        if (myTimer.IsPastDue)
+        {
+            _logger.LogInformation("[Nights] Registry import Working Hours was not run on schedule");
+        }
+
+        await PerformUpdate();
+
+        _logger.LogInformation("[Nights] Import completed. Next scheduled import attempt at: {ScheduleStatusNext}", myTimer.ScheduleStatus?.Next);
+    }
+
+    // Runs every hour on weekends.
+    // Ensure "WEBSITE_TIME_ZONE" app setting is set to "W. Europe Standard Time"
+    [Function("ImportRegistryWeekends")]
+    public async Task ImportRegistryWeekends(
+        [TimerTrigger("0 0 */1 * * SAT,SUN")] TimerInfo myTimer)
+    {
+        _logger.LogInformation("[Weekend] Registry Import executed at: {Now}", DateTime.Now);
+
+        if (myTimer.IsPastDue)
+        {
+            _logger.LogInformation("[Weekend] Registry import Working Hours was not run on schedule");
+        }
+
+        await PerformUpdate();
+
+        _logger.LogInformation("[Weekend] Import completed. Next scheduled import attempt at: {ScheduleStatusNext}", myTimer.ScheduleStatus?.Next);
     }
 
 
@@ -110,6 +144,10 @@ public class ImportRegistry(
     private async Task<List<PersonInternal>> GetPeople()
     {
         HttpResponseMessage result;
+        // Check if last successful import happened more than two hours ago, as we only want to log critical if that's the case, otherwise log error
+        // Should only be null once this is freshly deployed or to a fresh cache, don't assume failure due to that
+        var lastSuccessfulImport = await cache.GetValueAsync<DateTime?>(LastSuccessImportKey);
+        var moreThanTwoHoursAgo = lastSuccessfulImport is null || (lastSuccessfulImport.Value - DateTime.UtcNow).TotalHours >= 2;
         try
         {           
             var request = new HttpRequestMessage(HttpMethod.Get, _settings.RegistryURL);
@@ -118,13 +156,28 @@ public class ImportRegistry(
         }
         catch (Exception ex)
         {
-            _logger.LogCritical("Unable to fetch persons from TRAD, reasonphrase: {Reason}", ex.Message);
+            if(moreThanTwoHoursAgo)
+            {
+                _logger.LogCritical("Unable to fetch persons from TRAD, reasonphrase: {Reason}", ex.Message);
+            }
+            else
+            {
+                _logger.LogError("Unable to fetch persons from TRAD, reasonphrase: {Reason}", ex.Message);
+            }
             throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeUpstreamError, null, ex);
         }
 
         if (!result.IsSuccessStatusCode)
         {
-            _logger.LogCritical("Unable to fetch persons from TRAD, statuscode: {Code} reasonphrase: {Reason}", result.StatusCode.ToString(), result.ReasonPhrase);
+            if (moreThanTwoHoursAgo)
+            {
+                _logger.LogCritical("Unable to fetch persons from TRAD, statuscode: {Code} reasonphrase: {Reason}", result.StatusCode.ToString(), result.ReasonPhrase);
+            }
+            else
+            {
+                _logger.LogError("Unable to fetch persons from TRAD, statuscode: {Code} reasonphrase: {Reason}", result.StatusCode.ToString(), result.ReasonPhrase);
+            }
+            
             throw new EvidenceSourcePermanentClientException(EvidenceSourceMetadata.ErrorCodeUpstreamError, "Unable to fetch persons from TRAD");
         }
 
@@ -146,10 +199,19 @@ public class ImportRegistry(
                 var errorRegNrs = string.Join(", ", missingOrgNumbers);
                 _logger.LogError("Following registration numbers were unable to be imported due to errors with data values: {regNrs}", errorRegNrs);
             }
+            await cache.SetValueAsync(LastSuccessImportKey, DateTime.UtcNow);
             return trimmedResponse;
         }
-        catch (Exception e) {
-            _logger.LogCritical("Unable to decode response from TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
+        catch (Exception e) 
+        {
+            if (moreThanTwoHoursAgo)
+            {
+                _logger.LogCritical("Unable to decode response from TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
+            }
+            else
+            {
+                _logger.LogError("Unable to decode response from TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
+            }
             throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeUpstreamError,
                 "Did not understand the data model returned from upstream source");
         }
