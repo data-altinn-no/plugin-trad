@@ -147,7 +147,7 @@ public class ImportRegistry(
         // Check if last successful import happened more than two hours ago, as we only want to log critical if that's the case, otherwise log error
         // Should only be null once this is freshly deployed or to a fresh cache, don't assume failure due to that
         var lastSuccessfulImport = await cache.GetValueAsync<DateTime?>(LastSuccessImportKey);
-        var moreThanTwoHoursAgo = lastSuccessfulImport is null || (lastSuccessfulImport.Value - DateTime.UtcNow).TotalHours >= 2;
+        var moreThanTwoHoursAgo = lastSuccessfulImport is not null && (DateTime.UtcNow - lastSuccessfulImport.Value).TotalHours >= 2;
         try
         {           
             var request = new HttpRequestMessage(HttpMethod.Get, _settings.RegistryURL);
@@ -199,7 +199,6 @@ public class ImportRegistry(
                 var errorRegNrs = string.Join(", ", missingOrgNumbers);
                 _logger.LogError("Following registration numbers were unable to be imported due to errors with data values: {regNrs}", errorRegNrs);
             }
-            await cache.SetValueAsync(LastSuccessImportKey, DateTime.UtcNow);
             return trimmedResponse;
         }
         catch (Exception e) 
@@ -367,7 +366,9 @@ public class ImportRegistry(
 
         await Task.WhenAll(updateIndividualEntriesTask, cleanEntriesTask);
         await UpdateBulkEntry(registry);
-        
+
+        await cache.SetValueAsync(LastSuccessImportKey, DateTime.UtcNow);
+
         _logger.LogInformation("Completed writing persons and bulk entry");
     }
 
