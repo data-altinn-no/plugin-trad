@@ -119,15 +119,9 @@ public class ImportRegistry(
             }
             catch (Exception e)
             {
-                if(await WasLastSuccessfulImportMoreThanTwoHoursAgo())
-                {
-                    _logger.LogCritical("Was unable to update cache for TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
-                    throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeInternalError, null, e);
-                }
-                {
-                    _logger.LogError("Was unable to update cache for TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
-                    throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeInternalError, null, e);
-                }
+                var logLevel = await WasLastSuccessfulImportMoreThanTwoHoursAgo() ? LogLevel.Critical : LogLevel.Error;
+                _logger.Log(logLevel, "Was unable to update cache for TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
+                throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeInternalError, null, e);
             }
             _logger.LogDebug($"Done updating cache");
         }
@@ -149,29 +143,17 @@ public class ImportRegistry(
         }
         catch (Exception ex)
         {
-            if (await WasLastSuccessfulImportMoreThanTwoHoursAgo())
-            {
-                _logger.LogCritical("Unable to fetch persons from TRAD, reasonphrase: {Reason}", ex.Message);
-            }
-            else
-            {
-                _logger.LogError("Unable to fetch persons from TRAD, reasonphrase: {Reason}", ex.Message);
-            }
+            var logLevel = await WasLastSuccessfulImportMoreThanTwoHoursAgo() ? LogLevel.Critical : LogLevel.Error;
+            _logger.Log(logLevel, "Unable to fetch persons from TRAD, reasonphrase: {Reason}", ex.Message);
             throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeUpstreamError, null, ex);
+            
         }
 
         if (!result.IsSuccessStatusCode)
         {
-            if (await WasLastSuccessfulImportMoreThanTwoHoursAgo())
-            {
-                _logger.LogCritical("Unable to fetch persons from TRAD, statuscode: {Code} reasonphrase: {Reason}", result.StatusCode.ToString(), result.ReasonPhrase);
-            }
-            else
-            {
-                _logger.LogError("Unable to fetch persons from TRAD, statuscode: {Code} reasonphrase: {Reason}", result.StatusCode.ToString(), result.ReasonPhrase);
-            }
-            
-            throw new EvidenceSourcePermanentClientException(EvidenceSourceMetadata.ErrorCodeUpstreamError, "Unable to fetch persons from TRAD");
+            var logLevel = await WasLastSuccessfulImportMoreThanTwoHoursAgo() ? LogLevel.Critical : LogLevel.Error;
+            _logger.Log(logLevel, "Unable to fetch persons from TRAD, statuscode: {Code} reasonphrase: {Reason}", result.StatusCode.ToString(), result.ReasonPhrase);
+            throw new EvidenceSourcePermanentClientException(EvidenceSourceMetadata.ErrorCodeUpstreamError, "Unable to fetch persons from TRAD");   
         }
 
         try
@@ -196,14 +178,8 @@ public class ImportRegistry(
         }
         catch (Exception e) 
         {
-            if (await WasLastSuccessfulImportMoreThanTwoHoursAgo())
-            {
-                _logger.LogCritical("Unable to decode response from TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
-            }
-            else
-            {
-                _logger.LogError("Unable to decode response from TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
-            }
+            var logLevel = await WasLastSuccessfulImportMoreThanTwoHoursAgo() ? LogLevel.Critical : LogLevel.Error;
+            _logger.Log(logLevel, "Unable to decode response from TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
             throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeUpstreamError,
                 "Did not understand the data model returned from upstream source");
         }
