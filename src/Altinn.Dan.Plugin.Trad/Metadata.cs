@@ -11,6 +11,7 @@ namespace Altinn.Dan.Plugin.Trad
     {
         public const string Source = "Tilsynsrådet for Advokatvirksomheter";
         public const int ErrorCodeUpstreamError = 1;
+        public const int ErrorCodeInternalError = 2;
 
         public List<EvidenceCode> GetEvidenceCodes()
         {
