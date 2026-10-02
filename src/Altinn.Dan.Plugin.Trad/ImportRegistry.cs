@@ -40,63 +40,40 @@ public class ImportRegistry(
 
     private static readonly TimeSpan CacheTime = TimeSpan.FromDays(7);
 
-    private const string LastSuccessImportKey = "Last_Successful_Import";
-
-    // Runs every 10 minutes between 0500 and 1800 on monday to friday.
-    // Ensure "WEBSITE_TIME_ZONE" app setting is set to "W. Europe Standard Time"
-    [Function("ImportRegistryWorkingHours")]
-    public async Task ImportRegistryWorkingHours([TimerTrigger("0 */10 5-17 * * MON-FRI"
+    [Function("ImportRegistry")]
+    public async Task RunAsync([TimerTrigger("0 */10 * * * *"
 #if DEBUG
         , RunOnStartup = true
 #endif
     )] TimerInfo myTimer)
     {
-        _logger.LogInformation("[Working Hours] Registry Import executed at: {Now}", DateTime.Now);
+        _logger.LogInformation("Registry Import executed at: {Now}", DateTime.Now);
+        var fetchtime = DateTime.UtcNow;
 
         if (myTimer.IsPastDue)
         {
-            _logger.LogInformation("[Working Hours] Registry import Working Hours was not run on schedule");
+            _logger.LogInformation("Registry import was not run on schedule");
         }
 
-        await PerformUpdate();
-
-        _logger.LogInformation("[Working Hours] Import completed. Next scheduled import attempt at: {ScheduleStatusNext}", myTimer.ScheduleStatus?.Next);
-    }
-
-    // Runs every hour between 0500 and 1800 on monday to friday.
-    // Ensure "WEBSITE_TIME_ZONE" app setting is set to "W. Europe Standard Time"
-    [Function("ImportRegistryNights")]
-    public async Task ImportRegistryNights(
-        [TimerTrigger("0 0 18-23,0-4 * * MON-FRI")] TimerInfo myTimer)
-    {
-        _logger.LogInformation("[Nights] Registry Import executed at: {Now}", DateTime.Now);
-
-        if (myTimer.IsPastDue)
+        if (!Helpers.ShouldRunUpdate())
         {
-            _logger.LogInformation("[Nights] Registry import Working Hours was not run on schedule");
+            _logger.LogInformation("Skipping update outside of busy hours");
+            return;
         }
 
         await PerformUpdate();
-
-        _logger.LogInformation("[Nights] Import completed. Next scheduled import attempt at: {ScheduleStatusNext}", myTimer.ScheduleStatus?.Next);
-    }
-
-    // Runs every hour on weekends.
-    // Ensure "WEBSITE_TIME_ZONE" app setting is set to "W. Europe Standard Time"
-    [Function("ImportRegistryWeekends")]
-    public async Task ImportRegistryWeekends(
-        [TimerTrigger("0 0 */1 * * SAT,SUN")] TimerInfo myTimer)
-    {
-        _logger.LogInformation("[Weekend] Registry Import executed at: {Now}", DateTime.Now);
-
-        if (myTimer.IsPastDue)
+        try
         {
-            _logger.LogInformation("[Weekend] Registry import Working Hours was not run on schedule");
+            await cache.SetValueAsync(ApplicationSettings.RedisLastSuccessfulImportKey, fetchtime);
+        }
+        catch(Exception e)
+        {
+            // Opting to continue without throwing
+            // The import has successfully concluded if we reach this point of the method, but still log error so we know.
+            _logger.LogError("Unable to set last successful import for TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
         }
 
-        await PerformUpdate();
-
-        _logger.LogInformation("[Weekend] Import completed. Next scheduled import attempt at: {ScheduleStatusNext}", myTimer.ScheduleStatus?.Next);
+        _logger.LogInformation("Import completed. Next scheduled import attempt at: {ScheduleStatusNext}", myTimer.ScheduleStatus?.Next);
     }
 
 
@@ -136,18 +113,34 @@ public class ImportRegistry(
         using (var _ = _logger.Timer("es-trad-update-cache"))
         {
             _logger.LogDebug("Updating cache with {RegistryCount} root entries", registry.Count);
-            await UpdateCache(registry);
+            try
+            {
+                await UpdateCache(registry);
+            }
+            catch (Exception e)
+            {
+                if(await WasLastSuccessfulImportMoreThanTwoHoursAgo())
+                {
+                    _logger.LogCritical("Was unable to update cache for TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
+                    throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeInternalError, null, e);
+                }
+                {
+                    _logger.LogError("Was unable to update cache for TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
+                    throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeInternalError, null, e);
+                }
+            }
             _logger.LogDebug($"Done updating cache");
         }
     }
 
     private async Task<List<PersonInternal>> GetPeople()
     {
+        // Check if last successful import happened more than two hours ago on failures, 
+        // as we only want to log critical if that's the case, otherwise log error
+        // Treat null as critical. While likely only to happen on fresh deploy of feature and rare cache flushes,
+        // if we don't know when the last success was then default to critical.
+        // Only fetch within catch blocks to reduce roundtrips to cache
         HttpResponseMessage result;
-        // Check if last successful import happened more than two hours ago, as we only want to log critical if that's the case, otherwise log error
-        // Should only be null once this is freshly deployed or to a fresh cache, don't assume failure due to that
-        var lastSuccessfulImport = await cache.GetValueAsync<DateTime?>(LastSuccessImportKey);
-        var moreThanTwoHoursAgo = lastSuccessfulImport is not null && (DateTime.UtcNow - lastSuccessfulImport.Value).TotalHours >= 2;
         try
         {           
             var request = new HttpRequestMessage(HttpMethod.Get, _settings.RegistryURL);
@@ -156,7 +149,7 @@ public class ImportRegistry(
         }
         catch (Exception ex)
         {
-            if(moreThanTwoHoursAgo)
+            if (await WasLastSuccessfulImportMoreThanTwoHoursAgo())
             {
                 _logger.LogCritical("Unable to fetch persons from TRAD, reasonphrase: {Reason}", ex.Message);
             }
@@ -169,7 +162,7 @@ public class ImportRegistry(
 
         if (!result.IsSuccessStatusCode)
         {
-            if (moreThanTwoHoursAgo)
+            if (await WasLastSuccessfulImportMoreThanTwoHoursAgo())
             {
                 _logger.LogCritical("Unable to fetch persons from TRAD, statuscode: {Code} reasonphrase: {Reason}", result.StatusCode.ToString(), result.ReasonPhrase);
             }
@@ -203,7 +196,7 @@ public class ImportRegistry(
         }
         catch (Exception e) 
         {
-            if (moreThanTwoHoursAgo)
+            if (await WasLastSuccessfulImportMoreThanTwoHoursAgo())
             {
                 _logger.LogCritical("Unable to decode response from TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
             }
@@ -367,8 +360,6 @@ public class ImportRegistry(
         await Task.WhenAll(updateIndividualEntriesTask, cleanEntriesTask);
         await UpdateBulkEntry(registry);
 
-        await cache.SetValueAsync(LastSuccessImportKey, DateTime.UtcNow);
-
         _logger.LogInformation("Completed writing persons and bulk entry");
     }
 
@@ -526,5 +517,20 @@ public class ImportRegistry(
         var stringContent = await streamReader.ReadToEndAsync();
         var content = JsonConvert.DeserializeObject<List<ZipBulkPerson>>(stringContent);
         return content;
+    }
+
+    private async Task<bool> WasLastSuccessfulImportMoreThanTwoHoursAgo()
+    {
+        try
+        {
+            // Treat null as unknown state, meaning it could be more than two hours ago
+            var lastSuccessfulImport = await cache.GetValueAsync<DateTime?>(ApplicationSettings.RedisLastSuccessfulImportKey);
+            return lastSuccessfulImport is null || (DateTime.UtcNow - lastSuccessfulImport.Value).TotalHours >= 2;
+        }
+        catch(Exception e)
+        {
+            _logger.LogError("Unable to fetch when last successful import was from cache for TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
+            return true; // Treat unable to get from cache as unknown state, meaning it could be more than two hours ago
+        }
     }
 }

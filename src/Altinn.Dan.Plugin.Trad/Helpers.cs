@@ -34,20 +34,20 @@ public static class Helpers
         var norwegianTime = timeToCheck ?? TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "W. Europe Standard Time");
 
 
-        // Always update between 0600 and 1759
-        if (norwegianTime.Hour is >= 6 and < 18)
+        // Always update between 0500 and 1759 on working days
+        if ((norwegianTime.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday) && 
+            (norwegianTime.Hour is >= 5 and < 18))
         {
             return true;
         }
 
-        // Otherwise update every half hour. This assumes this is ran at most every 5 minutes.
-        if (norwegianTime.Minute is >= 58 or <= 2 or >= 28 and <= 32)
+        // Otherwise update every hour. Assumes the update function is ran every 10 minutes at most.
+        if (norwegianTime.Minute is >= 58 or <= 7)
         {
             return true;
         }
 
         return false;
-
     }
 
     private static List<PersonExternal> MapInternalPersonListToExternal(List<PersonInternal> personInternals,
