@@ -9,7 +9,6 @@ namespace Altinn.Dan.Plugin.Trad.Config
         public const string RedisBulkEntryPrivateKey = "advregprivate_bulk";
         public const string RedisRegNumberListKey = "advreg_regnrlist";
         public const string ZipEntryFileName = "advreg.json";
-        public const string RedisLastSuccessfulImportKey = "advreg_lastsuccessfulimport";
 
         private string _cert;
 

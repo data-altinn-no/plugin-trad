@@ -9,13 +9,10 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Altinn.ApiClients.Maskinporten.Interfaces;
-using Altinn.ApiClients.Maskinporten.Services;
 using Altinn.Dan.Plugin.Trad.Config;
 using Altinn.Dan.Plugin.Trad.Models;
 using Altinn.Dan.Plugin.Trad.Services;
 using Dan.Common.Exceptions;
-using Dan.Common.Extensions;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Caching.Distributed;
@@ -62,16 +59,6 @@ public class ImportRegistry(
         }
 
         await PerformUpdate();
-        try
-        {
-            await cache.SetValueAsync(ApplicationSettings.RedisLastSuccessfulImportKey, fetchtime);
-        }
-        catch(Exception e)
-        {
-            // Opting to continue without throwing
-            // The import has successfully concluded if we reach this point of the method, but still log error so we know.
-            _logger.LogError("Unable to set last successful import for TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
-        }
 
         _logger.LogInformation("Import completed. Next scheduled import attempt at: {ScheduleStatusNext}", myTimer.ScheduleStatus?.Next);
     }
@@ -119,8 +106,7 @@ public class ImportRegistry(
             }
             catch (Exception e)
             {
-                var logLevel = await WasLastSuccessfulImportMoreThanTwoHoursAgo() ? LogLevel.Critical : LogLevel.Error;
-                _logger.Log(logLevel, "Was unable to update cache for TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
+                _logger.Log(LogLevel.Critical, "Was unable to update cache for TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
                 throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeInternalError, null, e);
             }
             _logger.LogDebug($"Done updating cache");
@@ -143,16 +129,14 @@ public class ImportRegistry(
         }
         catch (Exception ex)
         {
-            var logLevel = await WasLastSuccessfulImportMoreThanTwoHoursAgo() ? LogLevel.Critical : LogLevel.Error;
-            _logger.Log(logLevel, "Unable to fetch persons from TRAD, reasonphrase: {Reason}", ex.Message);
+            _logger.Log(LogLevel.Critical, "Unable to fetch persons from TRAD, reasonphrase: {Reason}", ex.Message);
             throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeUpstreamError, null, ex);
             
         }
 
         if (!result.IsSuccessStatusCode)
         {
-            var logLevel = await WasLastSuccessfulImportMoreThanTwoHoursAgo() ? LogLevel.Critical : LogLevel.Error;
-            _logger.Log(logLevel, "Unable to fetch persons from TRAD, statuscode: {Code} reasonphrase: {Reason}", result.StatusCode.ToString(), result.ReasonPhrase);
+            _logger.Log(LogLevel.Critical, "Unable to fetch persons from TRAD, statuscode: {Code} reasonphrase: {Reason}", result.StatusCode.ToString(), result.ReasonPhrase);
             throw new EvidenceSourcePermanentClientException(EvidenceSourceMetadata.ErrorCodeUpstreamError, "Unable to fetch persons from TRAD");   
         }
 
@@ -178,8 +162,7 @@ public class ImportRegistry(
         }
         catch (Exception e) 
         {
-            var logLevel = await WasLastSuccessfulImportMoreThanTwoHoursAgo() ? LogLevel.Critical : LogLevel.Error;
-            _logger.Log(logLevel, "Unable to decode response from TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
+            _logger.Log(LogLevel.Critical, "Unable to decode response from TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
             throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeUpstreamError,
                 "Did not understand the data model returned from upstream source");
         }
@@ -493,20 +476,5 @@ public class ImportRegistry(
         var stringContent = await streamReader.ReadToEndAsync();
         var content = JsonConvert.DeserializeObject<List<ZipBulkPerson>>(stringContent);
         return content;
-    }
-
-    private async Task<bool> WasLastSuccessfulImportMoreThanTwoHoursAgo()
-    {
-        try
-        {
-            // Treat null as unknown state, meaning it could be more than two hours ago
-            var lastSuccessfulImport = await cache.GetValueAsync<DateTime?>(ApplicationSettings.RedisLastSuccessfulImportKey);
-            return lastSuccessfulImport is null || (DateTime.UtcNow - lastSuccessfulImport.Value).TotalHours >= 2;
-        }
-        catch(Exception e)
-        {
-            _logger.LogError("Unable to fetch when last successful import was from cache for TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
-            return true; // Treat unable to get from cache as unknown state, meaning it could be more than two hours ago
-        }
     }
 }
