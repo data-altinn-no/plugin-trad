@@ -454,7 +454,7 @@ public class ImportRegistry(
         var entry = JsonConvert.SerializeObject(newRegNumbers);
         await cache.SetAsync(ApplicationSettings.RedisRegNumberListKey, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2)
+            AbsoluteExpirationRelativeToNow = CacheTime
         });
     }
 
