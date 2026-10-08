@@ -9,8 +9,6 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Altinn.ApiClients.Maskinporten.Interfaces;
-using Altinn.ApiClients.Maskinporten.Services;
 using Altinn.Dan.Plugin.Trad.Config;
 using Altinn.Dan.Plugin.Trad.Models;
 using Altinn.Dan.Plugin.Trad.Services;
@@ -38,15 +36,16 @@ public class ImportRegistry(
     private readonly HttpClient _maskinportenClient = httpClientFactory.CreateClient("myMaskinportenClient");
 
     private static readonly TimeSpan CacheTime = TimeSpan.FromDays(7);
-    
+
     [Function("ImportRegistry")]
-    public async Task RunAsync([TimerTrigger("0 */5 * * * *"
+    public async Task RunAsync([TimerTrigger("0 */10 * * * *"
 #if DEBUG
         , RunOnStartup = true
 #endif
     )] TimerInfo myTimer)
     {
         _logger.LogInformation("Registry Import executed at: {Now}", DateTime.Now);
+        var fetchtime = DateTime.UtcNow;
 
         if (myTimer.IsPastDue)
         {
@@ -62,7 +61,6 @@ public class ImportRegistry(
         await PerformUpdate();
 
         _logger.LogInformation("Import completed. Next scheduled import attempt at: {ScheduleStatusNext}", myTimer.ScheduleStatus?.Next);
-
     }
 
 
@@ -102,13 +100,26 @@ public class ImportRegistry(
         using (var _ = _logger.Timer("es-trad-update-cache"))
         {
             _logger.LogDebug("Updating cache with {RegistryCount} root entries", registry.Count);
-            await UpdateCache(registry);
+            try
+            {
+                await UpdateCache(registry);
+            }
+            catch (Exception e)
+            {
+                _logger.Log(LogLevel.Critical, "Was unable to update cache for TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
+                throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeInternalError, null, e);
+            }
             _logger.LogDebug($"Done updating cache");
         }
     }
 
     private async Task<List<PersonInternal>> GetPeople()
     {
+        // Check if last successful import happened more than two hours ago on failures, 
+        // as we only want to log critical if that's the case, otherwise log error
+        // Treat null as critical. While likely only to happen on fresh deploy of feature and rare cache flushes,
+        // if we don't know when the last success was then default to critical.
+        // Only fetch within catch blocks to reduce roundtrips to cache
         HttpResponseMessage result;
         try
         {           
@@ -118,14 +129,15 @@ public class ImportRegistry(
         }
         catch (Exception ex)
         {
-            _logger.LogCritical("Unable to fetch persons from TRAD, reasonphrase: {Reason}", ex.Message);
+            _logger.Log(LogLevel.Critical, "Unable to fetch persons from TRAD, reasonphrase: {Reason}", ex.Message);
             throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeUpstreamError, null, ex);
+            
         }
 
         if (!result.IsSuccessStatusCode)
         {
-            _logger.LogCritical("Unable to fetch persons from TRAD, statuscode: {Code} reasonphrase: {Reason}", result.StatusCode.ToString(), result.ReasonPhrase);
-            throw new EvidenceSourcePermanentClientException(EvidenceSourceMetadata.ErrorCodeUpstreamError, "Unable to fetch persons from TRAD");
+            _logger.Log(LogLevel.Critical, "Unable to fetch persons from TRAD, statuscode: {Code} reasonphrase: {Reason}", result.StatusCode.ToString(), result.ReasonPhrase);
+            throw new EvidenceSourcePermanentClientException(EvidenceSourceMetadata.ErrorCodeUpstreamError, "Unable to fetch persons from TRAD");   
         }
 
         try
@@ -148,8 +160,9 @@ public class ImportRegistry(
             }
             return trimmedResponse;
         }
-        catch (Exception e) {
-            _logger.LogCritical("Unable to decode response from TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
+        catch (Exception e) 
+        {
+            _logger.Log(LogLevel.Critical, "Unable to decode response from TRAD. {Exception}: {Message}", e.GetType().Name, e.Message);
             throw new EvidenceSourcePermanentServerException(EvidenceSourceMetadata.ErrorCodeUpstreamError,
                 "Did not understand the data model returned from upstream source");
         }
@@ -305,7 +318,7 @@ public class ImportRegistry(
 
         await Task.WhenAll(updateIndividualEntriesTask, cleanEntriesTask);
         await UpdateBulkEntry(registry);
-        
+
         _logger.LogInformation("Completed writing persons and bulk entry");
     }
 
@@ -441,7 +454,7 @@ public class ImportRegistry(
         var entry = JsonConvert.SerializeObject(newRegNumbers);
         await cache.SetAsync(ApplicationSettings.RedisRegNumberListKey, Encoding.UTF8.GetBytes(entry), new DistributedCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2)
+            AbsoluteExpirationRelativeToNow = CacheTime
         });
     }
 

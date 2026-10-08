@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
@@ -7,12 +7,10 @@
     <UseAppHost>false</UseAppHost>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Altinn.ApiClients.Maskinporten" Version="10.0.1" />
-    <!-- Experimental pre-release: Dan.Common with OpenTelemetry instead of classic AI SDK.
-         Revert to a stable Dan.Common version once this is validated and released properly. -->
-    <PackageReference Include="Dan.Common" Version="1.0.0-preview11-otel" />
+	<PackageReference Include="Altinn.ApiClients.Maskinporten" Version="10.1.0" />
+	<PackageReference Include="Dan.Common" Version="1.0.0-preview11-otel" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" OutputItemType="Analyzer" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" OutputItemType="Analyzer" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
     <PackageReference Include="Microsoft.Azure.KeyVault" Version="3.0.5" />
     <PackageReference Include="Microsoft.Azure.StackExchangeRedis" Version="3.3.1" />
