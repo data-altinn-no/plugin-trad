@@ -5,23 +5,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Dan.Common.Extensions;
-using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using Altinn.ApiClients.Maskinporten.Interfaces;
 using Altinn.ApiClients.Maskinporten.Services;
 using Altinn.ApiClients.Maskinporten.Config;
 using Altinn.ApiClients.Maskinporten.Extensions;
-using System;
 using System.Threading.Tasks;
 using Azure.Core;
 using Azure.Identity;
 
 var host = new HostBuilder()
     .ConfigureDanPluginDefaults()
-    .ConfigureLogging(loggingConfiguration =>
-    {
-        loggingConfiguration.AddConsole();
-    })
     .ConfigureServices((_, services) =>
     {
         services.AddOptions<ApplicationSettings>()
