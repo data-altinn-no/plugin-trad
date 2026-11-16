@@ -32,6 +32,8 @@ namespace Altinn.Dan.Plugin.Trad.Config
 
         public string Scope { get; set; }
 
+        public string DanEnvironment { get; set; }
+
         public string Certificate
         {
             get
