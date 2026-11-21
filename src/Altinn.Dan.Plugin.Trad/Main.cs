@@ -117,7 +117,8 @@ public class Main
     private async Task<List<EvidenceValue>> GetEvidenceValuesVerifiserAdvokatPrivat(
         EvidenceHarvesterRequest evidenceHarvesterRequest)
     {
-        var res = await _cache.GetAsync(Helpers.GetCacheKeyForSsn(evidenceHarvesterRequest.SubjectParty!.NorwegianSocialSecurityNumber));
+        var ssn = evidenceHarvesterRequest.SubjectParty?.NorwegianSocialSecurityNumber;
+        var res = string.IsNullOrEmpty(ssn) ? null : await _cache.GetAsync(Helpers.GetCacheKeyForSsn(ssn));
 
         var ecb = new EvidenceBuilder(_metadata, "AdvRegPersonVerifikasjonPrivat");
         if (res != null)
